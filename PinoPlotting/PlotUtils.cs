@@ -218,10 +218,10 @@ namespace MyPlotting
             plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
             plt.Layout.Fixed(new PixelPadding(top: 10, right: 10, left: 50, bottom: 75));
 
-            if (Constants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-                plt.SavePng(outFile.FullName + Constants.ImageFormat, 800, 600);
-            else if (Constants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-                plt.SaveSvg(outFile.FullName + Constants.ImageFormat, 800, 600);
+            if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
+                plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+            else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
+                plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
             else
             {
                 Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");

@@ -110,10 +110,10 @@ namespace MyPlotting
             _plt.Axes.Bottom.Label.OffsetY = 30f;
             _plt.YLabel(yLabel);
             _plt.Layout.Fixed(new PixelPadding(top: 10, right: 10, left: 50, bottom: Math.Max(maxLabelLen * 7, 50)));
-            if (Constants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-                _plt.SavePng(outFile.FullName + Constants.ImageFormat, 800, 600);
-            else if (Constants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-                _plt.SaveSvg(outFile.FullName + Constants.ImageFormat, 800, 600);
+            if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
+                _plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+            else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
+                _plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
             else
             {
                 Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
