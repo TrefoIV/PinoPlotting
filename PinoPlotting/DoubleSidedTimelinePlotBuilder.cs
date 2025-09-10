@@ -6,7 +6,7 @@ using static MyPlotting.PlotUtils;
 
 namespace MyPlotting
 {
-    public class DoubleSidedTimelinePlotBuilder : TimelinePlotBuilder
+    public class DoubleSidedTimelinePlotBuilder : NumericalTimelinePlotBuilder
     {
         public bool LogRightY { get; set; }
         public int LogRightBase { get; set; } = 10;
