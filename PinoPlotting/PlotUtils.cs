@@ -62,7 +62,7 @@ namespace MyPlotting
 			return result;
 		}
 
-		public struct BoxWithAverage
+		public class BoxWithAverage
 		{
 			public Box Box { get; set; }
 			public double Average { get; set; }
@@ -148,6 +148,22 @@ namespace MyPlotting
 				int cent = (int)(n % 1_000 / 100);
 				string centS = cent == 0 ? "" : "." + cent.ToString("D");
 				result += $"{(int)(n / 1_000)}{centS}K";
+			}
+			else if (n == 0)
+			{
+				return "0";
+			}
+			else if (n < 0.01)
+			{
+				//Notazione scientifica per numeri piccolissimi
+				int exp = 0;
+				while (n < 1)
+				{
+					n *= 10;
+					exp--;
+				}
+
+				result += n.ToString("F2") + "e" + exp.ToString("D");
 			}
 			else
 			{
