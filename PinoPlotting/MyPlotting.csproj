@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -8,6 +8,12 @@
 
   <ItemGroup>
     <PackageReference Include="ScottPlot" Version="5.0.55" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AdvancedDataStructures">
+      <HintPath>..\..\AdvancedDataStructures\AdvancedDataStructures\bin\Debug\net7.0\AdvancedDataStructures.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

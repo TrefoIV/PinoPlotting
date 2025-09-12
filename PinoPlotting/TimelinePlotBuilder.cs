@@ -1,5 +1,4 @@
-﻿using MyPlotting.TickGenerators;
-using ScottPlot;
+﻿using ScottPlot;
 using ScottPlot.TickGenerators;
 using System.Globalization;
 
@@ -16,8 +15,6 @@ namespace MyPlotting
 		public DateTimeLabelingStrategy LabelinStrategy { get; set; }
 		public bool Squeeze { get; set; }
 
-
-		protected LogTickGenerator? _logTickGen = null;
 		protected SortedSet<DateTime> _allDates = new();
 
 		public TimelinePlotBuilder(bool logX, bool logY) : base(logX, logY)
@@ -53,7 +50,11 @@ namespace MyPlotting
 			_plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleLeft;
 
-			if (LogY) _plt.Axes.Left.TickGenerator = _logTickGen ?? new(0, 1);
+			if (LogY)
+			{
+				_plt.Axes.Left.TickGenerator = _yGenerator ?? new(1, 1) { ShowZero = false };
+				_plt.Axes.SetLimitsY(_yGenerator.ShowZero ? _yGenerator.Log(0) : Math.Floor(_yGenerator.Log(_yGenerator.Min)), Math.Ceiling(_yGenerator.Log(_yGenerator.Max)));
+			}
 			else _plt.Axes.Left.TickGenerator = new NumericAutomatic() { LabelFormatter = PlotUtils.NumericLabeling };
 
 			_plt.Grid.MinorLineWidth = 0.5f;
