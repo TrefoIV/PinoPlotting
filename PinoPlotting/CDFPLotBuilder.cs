@@ -123,7 +123,7 @@ namespace MyPlotting
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
 			_plt.Axes.Bottom.TickLabelStyle.AntiAliasText = false;
 			_plt.Legend.IsVisible = true;
-			_plt.Legend.Alignment = Alignment.LowerRight;
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.XAxisStyle.MajorLineStyle.Pattern = LinePattern.Dotted;

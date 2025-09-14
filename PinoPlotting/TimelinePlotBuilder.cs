@@ -57,6 +57,7 @@ namespace MyPlotting
 			}
 			else _plt.Axes.Left.TickGenerator = new NumericAutomatic() { LabelFormatter = PlotUtils.NumericLabeling };
 
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MinorLineWidth = 0.5f;
 			_plt.Axes.Left.Label.Text = yLabel;
 			_plt.Axes.Bottom.Label.Text = xLabel;

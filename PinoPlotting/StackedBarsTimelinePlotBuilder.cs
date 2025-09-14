@@ -52,6 +52,17 @@ namespace MyPlotting
 				}
 				var barPlotted = _plt.Add.Bars(allTimelineBars.SelectMany(x => x).ToArray());
 				barPlotted.LegendText = label;
+
+				foreach (Bar[] barsColumn in allTimelineBars)
+				{
+					if (barsColumn.Length == 0) continue;
+					double maxY = barsColumn[^1].Value;
+					double posX = barsColumn[0].Position;
+					var text = _plt.Add.Text($"{PlotUtils.NumericLabeling(barsColumn.Length)}", posX, maxY);
+					text.LabelFontSize = 8;
+					text.LabelFontColor = Colors.Black;
+					text.Alignment = Alignment.LowerCenter;
+				}
 			}
 		}
 

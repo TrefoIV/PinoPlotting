@@ -33,7 +33,7 @@ namespace MyPlotting
 		{
 			FinalizeSettings(xLabel, yLabel);
 			BuildAxes();
-
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 
 			_plt.Layout.Fixed(new PixelPadding(top: 10, right: 10, left: 75, bottom: 105));
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))

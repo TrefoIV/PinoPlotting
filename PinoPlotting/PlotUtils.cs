@@ -173,6 +173,13 @@ namespace MyPlotting
 			return result;
 		}
 
+		public static string NumericLabeling(int n)
+		{
+			if (Math.Abs(n) >= 1_000_000_000)
+				return NumericLabeling((double)n);
+			return n.ToString();
+		}
+
 		public static string SpanLabeling(double x)
 		{
 			TimeSpan span = TimeSpan.FromSeconds(x);

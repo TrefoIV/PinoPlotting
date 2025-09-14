@@ -62,7 +62,7 @@ namespace MyPlotting
 			}
 
 			//_plt.Legend.IsVisible = true;
-			_plt.Legend.Alignment = Alignment.UpperRight;
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			//_plt.Legend.Font.Size = 30f;
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
