@@ -4,20 +4,24 @@ using ScottPlot;
 
 namespace MyPlotting
 {
-	public class StackedBarsTimelinePlotBuilder<T> : TimelinePlotBuilder where T : class
+	public class StackedBarsTimelinePlotBuilder<T> : TimelinePlotBuilder where T : notnull
 	{
-		protected List<(IEnumerable<(DateTime, Dictionary<T, double>)>, string, Color?)> _timelines = new();
+		protected List<(IEnumerable<(DateTime, Dictionary<T, double>)>, string)> _timelines = new();
 		protected Dictionary<T, Color> _stackedObjects = new();
 
 		public StackedBarsTimelinePlotBuilder(bool logX, bool logY) : base(logX, logY)
 		{
 		}
 
-		public void AddTimeline(IEnumerable<(DateTime, Dictionary<T, double>)> timeline, string label = "", Color? color = null)
+		public void AddTimeline(IEnumerable<(DateTime, Dictionary<T, double>)> timeline, string label = "", Dictionary<T, Color>? colormap = null)
 		{
-			foreach (var item in timeline.SelectMany(x => x.Item2.Keys)) _stackedObjects.GetOrInsert(item, PlotUtils.GetRandomColor());
+			foreach (var item in timeline.SelectMany(x => x.Item2.Keys).ToHashSet())
+			{
+				var col = colormap != null && colormap.TryGetValue(item, out var c) ? c : PlotUtils.GetHashColor(item);
+				_stackedObjects.GetOrInsert(item, col);
+			}
 			AddTimelineDates(timeline.Select(x => x.Item1));
-			_timelines.Add((timeline, label, color));
+			_timelines.Add((timeline, label));
 		}
 
 		protected override void PlotAllTimelines()
@@ -29,8 +33,8 @@ namespace MyPlotting
 				_yGenerator ??= new LogTickGenerator(minY, maxY) { LogBase = LogBaseY, NaturalLog = false, IsTimeSpan = false };
 			}
 
-			var date2pos = _allDates.Select((date, i) => (date, (i + 1))).ToDictionary(x => x.date, x => x.Item2);
-			foreach ((var timeline, var label, var color) in _timelines)
+			var date2pos = _allDates.Select((date, i) => (date, i + 1)).ToDictionary(x => x.date, x => x.Item2);
+			foreach ((var timeline, var label) in _timelines)
 			{
 				Bar[][] allTimelineBars = new Bar[timeline.Count()][];
 				foreach (var item in timeline.Select((x, i) => (x, i)))
@@ -73,7 +77,7 @@ namespace MyPlotting
 
 			int i = 0;
 			double baseValue = 0;
-			foreach (var stackObject in _stackedObjects.Keys)
+			foreach (T? stackObject in _stackedObjects.Keys.OrderBy(key => key.GetHashCode()))
 			{
 				if (barsData.TryGetValue(stackObject, out double value))
 				{
@@ -82,7 +86,8 @@ namespace MyPlotting
 						Position = pos,
 						ValueBase = baseValue,
 						Value = baseValue + value,
-						FillColor = _stackedObjects[stackObject]
+						FillColor = _stackedObjects[stackObject],
+						LineColor = Colors.White
 					};
 					baseValue += value;
 				}

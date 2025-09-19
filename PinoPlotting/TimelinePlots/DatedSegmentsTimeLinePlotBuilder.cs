@@ -23,19 +23,14 @@ namespace MyPlotting
 	/// --- ------ ------  -----
 	/// --- ------ -----   ------
 	/// </summary>
-	public class DatedSegmentsTimeLinePlotBuilder : IDisposable
+	public class DatedSegmentsTimeLinePlotBuilder : AbstractPlot
 	{
-
-		private Plot _plt;
-		private bool _disposed;
-
 		private List<(DatedSegment[][] groups, string yTick, string label)> _data;
 		private List<DatedSegment> _verticalBars;
 
 
-		public DatedSegmentsTimeLinePlotBuilder()
+		public DatedSegmentsTimeLinePlotBuilder() : base(false, false)
 		{
-			_plt = new Plot();
 			_verticalBars = new();
 			_data = new();
 		}
@@ -50,7 +45,7 @@ namespace MyPlotting
 			_verticalBars.Add(segment);
 		}
 
-		public void SavePlot(FileInfo outFile, string labelX = "", string labelY = "")
+		public override void SavePlot(FileInfo outFile, string labelX = "", string labelY = "")
 		{
 			double startY = 0, endY;
 			double[] yTicks = new double[_data.Count];
@@ -114,25 +109,5 @@ namespace MyPlotting
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
 			}
 		}
-
-		protected virtual void Dispose(bool disposing)
-		{
-			if (_disposed) return;
-
-			if (disposing)
-			{
-				//Free managed resources here. Assign large managed object references to null to make them more likely to be unreachable
-			}
-			_plt.Dispose();
-
-			_disposed = true;
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 	}
 }

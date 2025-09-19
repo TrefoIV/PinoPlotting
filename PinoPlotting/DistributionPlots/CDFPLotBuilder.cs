@@ -22,7 +22,7 @@ namespace MyPlotting
 			{
 				return;
 			}
-			cdf = PlotUtils.MakeDataGradinoPlot(CDFUtils.MakeCDF(inputData, steps));
+			cdf = PlotUtils.MakeDataGradinoPlot(CDFUtils.MakeCDF(inputData, steps: steps));
 			double[] xs = cdf.Select(x => x.Item1).ToArray();
 			double[] ys = cdf.Select(y => y.Item2).ToArray();
 

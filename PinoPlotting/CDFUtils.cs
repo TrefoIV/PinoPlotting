@@ -1,131 +1,126 @@
 ﻿using ScottPlot;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
 
 namespace MyPlotting
 {
-    public static class CDFUtils
-    {
-        public const int DEFAULT_STEPS = 15;
+	public static class CDFUtils
+	{
+		public const int DEFAULT_STEPS = 15;
 
-        public static List<(int, double)> MakeCDF(IEnumerable<int> inputData, int steps = DEFAULT_STEPS)
-        {
-            int maxCommon = inputData.Max();
-            int minCommon = inputData.Min();
+		public static List<(int, double)> MakeCDF(IEnumerable<int> inputData, int steps = DEFAULT_STEPS)
+		{
+			int maxCommon = inputData.Max();
+			int minCommon = inputData.Min();
 
-            int p = maxCommon - minCommon;
-            int bucketDimension = p / steps;
+			int p = maxCommon - minCommon;
+			int bucketDimension = p / steps;
 
-            if (bucketDimension == 0)
-            {
-                bucketDimension = 1;
-            }
+			if (bucketDimension == 0)
+			{
+				bucketDimension = 1;
+			}
 
-            List<(int, double)> results = new();
+			List<(int, double)> results = new();
 
-            for (int i = minCommon; i <= maxCommon; i += bucketDimension)
-            {
-                results.Add((i, inputData.Where(x => x <= i).Count() / (double)inputData.Count() * 100));
-            }
+			for (int i = minCommon; i <= maxCommon; i += bucketDimension)
+			{
+				results.Add((i, inputData.Where(x => x <= i).Count() / (double)inputData.Count() * 100));
+			}
 
-            return results;
-        }
+			return results;
+		}
 
-        public static List<(double, double)> MakeCDF(IEnumerable<double> inputData, int steps = DEFAULT_STEPS)
-        {
-            double maxCommon = inputData.Max();
-            double minCommon = inputData.Min();
+		public static List<(double, double)> MakeCDF(IEnumerable<double> inputData, (double, double)? range = null, int steps = DEFAULT_STEPS)
+		{
+			double maxCommon = range == null ? inputData.Max() : range.Value.Item2;
+			double minCommon = range == null ? inputData.Min() : range.Value.Item1;
 
-            double p = maxCommon - minCommon;
-            double bucketDimension = p / steps;
+			double p = maxCommon - minCommon;
+			double bucketDimension = p / steps;
 
-            if (bucketDimension == 0)
-            {
-                if (maxCommon == 0)
-                {
-                    return new List<(double, double)> { (0, 100) };
-                }
-                bucketDimension = maxCommon / steps;
-                minCommon -= bucketDimension * steps;
-            }
+			if (bucketDimension == 0)
+			{
+				if (maxCommon == 0)
+				{
+					return new List<(double, double)> { (0, 100) };
+				}
+				bucketDimension = maxCommon / steps;
+				minCommon -= bucketDimension * steps;
+			}
 
-            List<(double, double)> results = new()
-            {
-                (0, 0)
-            };
+			List<(double, double)> results = new()
+			{
+				(0, 0)
+			};
 
-            double i;
-            for (i = minCommon; i <= maxCommon; i += bucketDimension)
-            {
-                results.Add((i, inputData.Where(x => x <= i).Count() / (double)inputData.Count() * 100));
-            }
-            if (i != maxCommon)
-            {
-                results.Add((maxCommon, 100));
-            }
+			double i;
+			for (i = minCommon; i <= maxCommon; i += bucketDimension)
+			{
+				results.Add((i, inputData.Where(x => x <= i).Count() / (double)inputData.Count() * 100));
+			}
+			if (i != maxCommon)
+			{
+				results.Add((maxCommon, 100));
+			}
 
-            return results;
-        }
+			return results;
+		}
 
-        public static List<(double, double)> MakePDF(IEnumerable<double> inputData, int steps = DEFAULT_STEPS)
-        {
-            if (!inputData.Any()) return new List<(double, double)> { (0, 0) };
+		public static List<(double, double)> MakePDF(IEnumerable<double> inputData, int steps = DEFAULT_STEPS)
+		{
+			if (!inputData.Any()) return new List<(double, double)> { (0, 0) };
 
-            double maxCommon = inputData.Max();
-            double minCommon = inputData.Min();
+			double maxCommon = inputData.Max();
+			double minCommon = inputData.Min();
 
-            double p = maxCommon - minCommon;
-            double bucketDimension = p / steps;
+			double p = maxCommon - minCommon;
+			double bucketDimension = p / steps;
 
-            if (bucketDimension == 0)
-            {
-                if (maxCommon == 0)
-                {
-                    return new List<(double, double)> { (0, 0) };
-                }
-                bucketDimension = maxCommon / steps;
-                minCommon -= bucketDimension * steps;
-            }
+			if (bucketDimension == 0)
+			{
+				if (maxCommon == 0)
+				{
+					return new List<(double, double)> { (0, 0) };
+				}
+				bucketDimension = maxCommon / steps;
+				minCommon -= bucketDimension * steps;
+			}
 
-            List<(double, double)> results = new();
+			List<(double, double)> results = new();
 
-            double i;
-            for (i = minCommon; i <= maxCommon; i += bucketDimension)
-            {
-                results.Add((i, inputData.Where(x => x <= i).Count()));
-            }
-            if (i != maxCommon)
-            {
-                results.Add((maxCommon, 100));
-            }
+			double i;
+			for (i = minCommon; i <= maxCommon; i += bucketDimension)
+			{
+				results.Add((i, inputData.Where(x => x <= i).Count()));
+			}
+			if (i != maxCommon)
+			{
+				results.Add((maxCommon, 100));
+			}
 
-            return results;
-        }
+			return results;
+		}
 
-        public static List<(int, double)> MakeCDFLogIntegerBuckets(IEnumerable<int> inputData, int steps = DEFAULT_STEPS)
-        {
-            int maxCommon = inputData.Max();
-            int minCommon = inputData.Min();
+		public static List<(int, double)> MakeCDFLogIntegerBuckets(IEnumerable<int> inputData, int steps = DEFAULT_STEPS)
+		{
+			int maxCommon = inputData.Max();
+			int minCommon = inputData.Min();
 
-            double p = maxCommon / (double)minCommon;
-            //Double bucketDimension = p / (Double)steps;
+			double p = maxCommon / (double)minCommon;
+			//Double bucketDimension = p / (Double)steps;
 
-            IEnumerable<int> buckets = Enumerable.Range(0, steps + 1).Select(i => minCommon * Math.Pow(p, i / (double)steps)).Select(x => (int)x).Distinct();
+			IEnumerable<int> buckets = Enumerable.Range(0, steps + 1).Select(i => minCommon * Math.Pow(p, i / (double)steps)).Select(x => (int)x).Distinct();
 
-            List<(int, double)> results = new();
+			List<(int, double)> results = new();
 
-            foreach (var b in buckets)
-            {
-                results.Add((b, inputData.Where(x => x <= b).Count() / (double)inputData.Count() * 100));
-            }
+			foreach (var b in buckets)
+			{
+				results.Add((b, inputData.Where(x => x <= b).Count() / (double)inputData.Count() * 100));
+			}
 
-            return results;
-        }
+			return results;
+		}
 
 
-    }
+	}
 }
 

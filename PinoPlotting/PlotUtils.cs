@@ -254,5 +254,14 @@ namespace MyPlotting
 			byte b = (byte)Random.Shared.Next(32, 224);
 			return new Color(r, g, b);
 		}
+
+		public static Color GetHashColor<T>(T obj)
+		{
+			int hash = obj.GetHashCode();
+			byte r = (byte)((hash & 0xFF0000) >> 16);
+			byte g = (byte)((hash & 0x00FF00) >> 8);
+			byte b = (byte)((hash & 0x0000FF));
+			return new Color(r, g, b);
+		}
 	}
 }
