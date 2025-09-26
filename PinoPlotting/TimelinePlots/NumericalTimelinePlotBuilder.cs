@@ -88,17 +88,47 @@ namespace MyPlotting
 
 		private void AddSignal((IEnumerable<(DateTime, BoxWithAverage)>, string, Color?) timeline, Dictionary<DateTime, int> date2x)
 		{
-			DateTime startTime = timeline.Item1.First().Item1;
+			DateTime startTime = timeline.Item1.Select(x => x.Item1).Order().First();
 
 			double[] yValues = Enumerable.Range(0, date2x.Count).Select(_ => double.NaN).ToArray();
 			foreach (var value in timeline.Item1)
 			{
-				yValues[date2x[value.Item1]] = value.Item2.Average;
+				yValues[date2x[value.Item1] - 1] = value.Item2.Average;
 			}
-			var signal = _plt.Add.Signal(yValues, period: 1);
+			double period = GetPeriod(timeline.Item1);
+			var signal = _plt.Add.Signal(yValues, period: period);
 			signal.Data.XOffset = startTime.ToOADate();
-			signal.LineColor = timeline.Item3 ?? Color.RandomHue();
+			if (timeline.Item3 != null) signal.LineColor = timeline.Item3.Value;
 			signal.LegendText = timeline.Item2;
+		}
+
+		private double GetPeriod(IEnumerable<(DateTime, BoxWithAverage)> timeline)
+		{
+			switch (TimeUnit)
+			{
+				case DataTimeUnit.Second:
+					return 1.0 / (24 * 60 * 60);
+				case DataTimeUnit.Minute:
+					return 1.0 / (24 * 60);
+				case DataTimeUnit.Hour:
+					return 1.0 / (24);
+				case DataTimeUnit.Day:
+					return 1.0;
+				case DataTimeUnit.Week:
+					return 7.0;
+				case DataTimeUnit.Month:
+					throw new InvalidOperationException("Cannot use a monthly period with signal timelines");
+				case DataTimeUnit.Year:
+					throw new InvalidOperationException("Cannot use a yearly period with signal timelines");
+				case DataTimeUnit.RegularCustom:
+					{
+						TimeSpan span = timeline.Skip(1).First().Item1 - timeline.First().Item1;
+						return span.TotalSeconds * (1.0 / (24 * 60 * 60));
+					}
+				default:
+					throw new NotImplementedException($"Value {TimeUnit} not valid");
+
+			}
 		}
 
 		protected Scatter AddScatter((int, BoxWithAverage)[] timeline, string label, Color? color)
@@ -109,6 +139,7 @@ namespace MyPlotting
 
 			var scatter = _plt.Add.Scatter(xs, yData, color: color);
 			scatter.Axes.YAxis = _plt.Axes.Left;
+			scatter.MarkerSize *= 0.5f;
 			scatter.LegendText = label;
 
 			//Aggiungi i segnalini di min e max per la "varianza"
@@ -131,13 +162,12 @@ namespace MyPlotting
 			if (UseSignal)
 			{
 				_plt.Axes.DateTimeTicksBottom();
-				_plt.Axes.Bottom.TickLabelStyle.FontSize *= 0.7f;
-				_plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
-				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleLeft;
+				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperCenter;
 				((DateTimeAutomatic)_plt.Axes.Bottom.TickGenerator).LabelFormatter = FullDateLabeling;
 				return _allDates.Count;
 			}
-			return base.BuildXaxis();
+			else
+				return base.BuildXaxis();
 		}
 	}
 }

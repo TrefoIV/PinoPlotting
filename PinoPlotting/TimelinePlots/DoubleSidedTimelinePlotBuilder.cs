@@ -106,8 +106,8 @@ namespace MyPlotting
 			{
 				_rightYTickGen ??= new(1, 1) { LogBase = LogRightBase };
 				_plt.Axes.Right.TickGenerator = _rightYTickGen;
-				_plt.Axes.SetLimitsY(_rightYTickGen.ShowZero ? _rightYTickGen.Log(0) : Math.Floor(_rightYTickGen.Log(_rightYTickGen.Min)),
-									Math.Ceiling(_rightYTickGen.Log(_rightYTickGen.Max)), _plt.Axes.Right);
+				(double bttm, double top) = _rightYTickGen.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top, _plt.Axes.Right);
 			}
 			else _plt.Axes.Right.TickGenerator = new NumericAutomatic() { LabelFormatter = NumericLabeling };
 

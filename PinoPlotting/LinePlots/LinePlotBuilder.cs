@@ -1,12 +1,11 @@
-﻿using MyPlotting.Extensions;
-using MyPlotting.TickGenerators;
+﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.Extensions;
 using ScottPlot;
 
 namespace MyPlotting
 {
 	public class LinePlotBuilder : AbstractPlot
 	{
-		private LogTickGenerator? _leftYTickGen = null;
 		public double xMax { get; protected set; }
 		public double yMax { get; protected set; }
 		public bool Squeeze { get; set; }
@@ -23,10 +22,12 @@ namespace MyPlotting
 			double[] ys = data.ToArray();
 			if (LogY && data.Any())
 			{
-				_leftYTickGen ??= new(data.Min(), data.Max()) { LogBase = LogBaseY };
-				_leftYTickGen.Min = Math.Min(_leftYTickGen.Min, data.Min());
-				_leftYTickGen.Max = Math.Max(_leftYTickGen.Max, data.Max());
-				ys.Apply(_leftYTickGen.Log);
+				(double min, double max) = data.Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+				if (min == -1 || max == -1) return;
+				_yGenerator ??= new(min, max) { LogBase = LogBaseY };
+				_yGenerator.Min = Math.Min(_yGenerator.Min, min);
+				_yGenerator.Max = Math.Max(_yGenerator.Max, max);
+				ys.Apply(_yGenerator.Log);
 			}
 
 			var scatter = _plt.Add.Scatter(xs, ys, color: color);
@@ -46,31 +47,27 @@ namespace MyPlotting
 		{
 			_plt.Axes.SetLimitsY(bottom: -0.01, top: yMax + 0.05);
 			_plt.Axes.SetLimits(right: xMax + 5);
+			_plt.Axes.SetLimits(left: 0);
 
 			if (LogY)
 			{
-				_plt.Axes.Left.TickGenerator = _leftYTickGen ?? new(0, 1);
-				//_plt.Axes.Left.TickGenerator = new NumericAutomatic()
-				//{
-				//	MinorTickGenerator = new LogMinorTickGenerator(),
-				//	LabelFormatter = x => $"{Math.Pow(10, x):N0}"
-				//};
+				_yGenerator ??= new(1, 1);
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+
 				for (int e = 1; e <= _plt.Axes.GetLimits().Top; e++)
 				{
 					_plt.Add.HorizontalLine(e, width: 1f, Colors.DarkGrey, LinePattern.Dashed);
 				}
 			}
 
-			//_plt.Legend.IsVisible = true;
+
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
-			//_plt.Legend.Font.Size = 30f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.IsVisible = true;
-			_plt.Axes.Bottom.TickLabelStyle.FontSize = 30f;
-			_plt.Axes.Left.TickLabelStyle.FontSize = 30f;
-			_plt.Axes.SetLimits(left: 0);
-
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			int xSize = Squeeze ? 800 : (int)_plt.Axes.GetLimits().Right * 10;
 			if (xLabel != null)
 				_plt.XLabel(xLabel);

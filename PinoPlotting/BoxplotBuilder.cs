@@ -78,16 +78,16 @@ namespace MyPlotting
 			_plt.Axes.Bottom.TickGenerator = new NumericManual(xs, xLabels);
 
 			_plt.Legend.IsVisible = true;
-			_plt.Legend.FontSize = 13f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.IsVisible = true;
-			_plt.Axes.Bottom.TickLabelStyle.FontSize = 20f;
-			_plt.Axes.Left.TickLabelStyle.FontSize = 20f;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 			_plt.Axes.SetLimits(left: 0, bottom: -5, top: 10);
-			_plt.Axes.Left.Max = 10;
+
 			if (xLabel != null)
 				_plt.XLabel(xLabel);
 			_plt.Axes.Bottom.Label.OffsetY = 30f;

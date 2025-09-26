@@ -17,8 +17,8 @@ namespace MyPlotting
 			FinalizeSettings(xLabel, yLabel);
 			BuildAxes(maxValue);
 
-
-			_plt.Layout.Fixed(new PixelPadding(top: 10, right: 10, left: 75, bottom: 105));
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
+			_plt.Layout.Fixed(new PixelPadding(top: 10, right: 75, left: 75, bottom: 105));
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
@@ -35,7 +35,7 @@ namespace MyPlotting
 			BuildAxes();
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 
-			_plt.Layout.Fixed(new PixelPadding(top: 10, right: 10, left: 75, bottom: 105));
+			_plt.Layout.Fixed(new PixelPadding(top: 15, right: 75, left: 75, bottom: 105));
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
@@ -58,7 +58,8 @@ namespace MyPlotting
 				}
 				_xGenerator.IsTimeSpan = true;
 				_plt.Axes.Bottom.TickGenerator = _xGenerator;
-
+				(double bttm, double top) = _xGenerator.GetLimits();
+				_plt.Axes.SetLimitsX(bttm, top);
 			}
 			else
 			{
@@ -69,10 +70,10 @@ namespace MyPlotting
 			}
 			_plt.Axes.Left.TickGenerator = new NumericFixedInterval(10);
 			_plt.Axes.Bottom.Label.OffsetY = 20f;
-			_plt.Axes.Bottom.TickLabelStyle.FontSize = 14f;
-			_plt.Axes.Left.TickLabelStyle.FontSize = 20f;
-			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleRight;
-			_plt.Axes.Bottom.TickLabelStyle.Rotation = -90;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
+			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 		}
 
 		private string SpanLabeling(double x)

@@ -1,17 +1,21 @@
-﻿using ScottPlot;
+﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.CustomPlottable;
+using ScottPlot;
+using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
 {
 	public class MultipleDistributionsPlotBuilder : AbstractPlot
 	{
-		public bool UseColorMap { get; private set; } = false;
+		public bool UseColorMap { get; set; } = false;
 		public bool CommonScale { get; set; } = false;
-
+		public bool UseHistograms { get; set; } = false;
+		public int PDFSteps { get; set; } = 15;
 		private int _addedDistributions = 0;
 		private List<string> _yLabels = new();
 
-		private List<List<(double, double)>> _pdfsList = new();
+		private List<IEnumerable<double>> _dataList = new();
 
 		public MultipleDistributionsPlotBuilder(bool useColorMap, bool logX = false)
 			: base(logX, false)
@@ -24,29 +28,32 @@ namespace MyPlotting
 
 			if (LogX)
 			{
-				_xGenerator ??= new(data.Min(), data.Max()) { LogBase = LogBaseX };
-				_xGenerator.Min = Math.Min(_xGenerator.Min, data.Min());
-				_xGenerator.Max = Math.Max(_xGenerator.Max, data.Max());
+				(double min, double max) = data.Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+				if (min == -1 || max == -1) { return; }
+				_xGenerator ??= new(min, max) { LogBase = LogBaseX };
+				_xGenerator.Min = Math.Min(_xGenerator.Min, min);
+				_xGenerator.Max = Math.Max(_xGenerator.Max, max);
 
 				data = data.Select(_xGenerator.Log);
 			}
 
-			var pdf = CDFUtils.MakePDF(data);
 			_addedDistributions++;
 
-			double y = _addedDistributions;
-			var line = _plt.Add.HorizontalLine(y, color: Colors.DarkGrey, pattern: LinePattern.Dashed);
-			line.LineWidth = 0.5f;
-			_yLabels.Add(yLabel ?? $"{y}");
-			_pdfsList.Add(pdf);
-
-
-
+			_yLabels.Add(yLabel ?? $"{_addedDistributions}");
+			_dataList.Add(data);
 		}
 
 		private void CreatePlots()
 		{
-			if (!_pdfsList.Any()) return;
+			IColormap? colormap = null;
+			if (UseColorMap)
+			{
+				var fullColormap = new ScottPlot.Colormaps.Greens();
+				var restrictedColors = fullColormap.GetColors(256, minFraction: 0.1, maxFraction: 0.8);
+				colormap = new ScottPlot.Colormaps.CustomInterpolated(restrictedColors);
+			}
+			if (!_dataList.Any()) return;
+			var _pdfsList = _dataList.Select(x => CDFUtils.MakePDF(x, PDFSteps)).ToList();
 
 			double? max = CommonScale ? _pdfsList.Max(pdf => pdf.Max(p => p.Item2)) : null;
 
@@ -56,31 +63,111 @@ namespace MyPlotting
 			for (int i = 0; i < _pdfsList.Count; i++)
 			{
 				double y = _addedDistributions - i;
+				var line = _plt.Add.HorizontalLine(y, color: Colors.DarkGrey, pattern: LinePattern.Dashed);
+				line.LineWidth = 0.5f;
+
 				max ??= _pdfsList[i].Max(p => p.Item2);
 
-				foreach ((double x, double count) point in _pdfsList[i])
+				foreach (((double, double) bin, double count) point in _pdfsList[i])
 				{
-					var s = _plt.Add.Scatter(new Coordinates(point.x, y));
-					s.MarkerSize = (float)(point.count / max * 15);
+					double mean = (point.bin.Item1 + point.bin.Item2) / 2;
+					double value = point.count / max.Value;
+					//Mappa la size tra 5 e 15. 0 va su 5 e 1 va su 15
+					float size = (float)value * 10 + 5;
+
+					Color? c = colormap?.GetColor(value);
+					var s = _plt.Add.Marker(mean, y, shape: MarkerShape.FilledCircle, size, c);
 				}
 
 				ys[i] = y;
 				yLabels[i] = _yLabels[i];
 			}
 
-			if (LogX)
-			{
-				_plt.Axes.Bottom.TickGenerator = _xGenerator ?? new(1, 1);
-			}
 			_plt.Axes.Left.TickGenerator = new NumericManual(ys, yLabels);
+
+			if (UseColorMap)
+			{
+				ColormapLegend cp = new(colormap, new ScottPlot.Range(0, max.Value));
+				var colorLegend = _plt.Add.ColorBar(cp);
+				colorLegend.Axis.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = x => $"{PlotUtils.NumericLabeling(x):F2}%"
+				};
+			}
+		}
+
+
+		private void CreatePlotsHistograms()
+		{
+			double[] yTicks = new double[_dataList.Count];
+			string[] yLabels = new string[_dataList.Count];
+			double y = 0;
+
+			for (int i = 0; i < _dataList.Count; i++)
+			{
+				yTicks[i] = y;
+				yLabels[i] = _yLabels[i];
+				double[] data = _dataList[i].ToArray();
+				if (data.Length < 1) continue;
+
+				double maxCommon = data.Max();
+				double minCommon = data.Min();
+
+				double p = maxCommon - minCommon;
+				double binSize = p / PDFSteps;
+
+
+				var hist = ScottPlot.Statistics.Histogram.WithBinSize(binSize, data);
+
+				// Display the histogram as a bar plot
+				BarPlot barPlot = _plt.Add.Bars(hist.Bins, hist.GetProbability());
+
+				Color color = PlotUtils.GetRandomColor();
+				// Customize the style of each bar
+				foreach (Bar bar in barPlot.Bars)
+				{
+					bar.Value += y;
+					bar.ValueBase = y;
+					bar.Size = hist.FirstBinSize;
+					bar.LineWidth = 0;
+					bar.FillStyle.AntiAlias = false;
+					bar.FillColor = color.WithAlpha(.2);
+				}
+
+				// Plot the probability curve on top the histogram
+				ScottPlot.Statistics.ProbabilityDensity pd = new(data);
+				double[] xs = Generate.Range(minCommon, maxCommon, binSize);
+				double scale = 1.0 / hist.Bins.Select(x => pd.GetY(x)).Sum();
+				double[] ys = pd.GetYs(xs, scale).Select(p => p + y).ToArray();
+
+				var curve = _plt.Add.ScatterLine(xs, ys);
+				curve.LineWidth = 2;
+				curve.LineColor = color;
+				curve.LinePattern = LinePattern.DenselyDashed;
+				curve.LegendText = _yLabels[i];
+
+				y = barPlot.Bars.Max(bar => bar.Value);
+				y += y * 0.1;
+			}
+			_plt.Axes.Left.TickGenerator = new NumericManual(yTicks, yLabels);
 		}
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			CreatePlots();
+			if (UseHistograms) CreatePlotsHistograms();
+			else CreatePlots();
+
+			if (LogX)
+			{
+				_xGenerator ??= new(1, 1);
+				_plt.Axes.Bottom.TickGenerator = _xGenerator;
+				(double bttm, double top) = _xGenerator.GetLimits();
+				_plt.Axes.SetLimitsX(bttm, top);
+			}
 
 			_plt.Axes.Bottom.Label.Text = xLabel;
 			_plt.Axes.Left.Label.Text = yLabel;
+			_plt.Legend.Alignment = LegendAlignment ?? Alignment.LowerRight;
 
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);

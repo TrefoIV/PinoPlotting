@@ -6,8 +6,9 @@ namespace MyPlotting
 {
 	public class StackedBarsTimelinePlotBuilder<T> : TimelinePlotBuilder where T : notnull
 	{
+		public bool AddBarCountOnTop { get; set; } = false;
 		protected List<(IEnumerable<(DateTime, Dictionary<T, double>)>, string)> _timelines = new();
-		protected Dictionary<T, Color> _stackedObjects = new();
+		protected Dictionary<T, Color>? Colormap = null;
 
 		public StackedBarsTimelinePlotBuilder(bool logX, bool logY) : base(logX, logY)
 		{
@@ -18,7 +19,8 @@ namespace MyPlotting
 			foreach (var item in timeline.SelectMany(x => x.Item2.Keys).ToHashSet())
 			{
 				var col = colormap != null && colormap.TryGetValue(item, out var c) ? c : PlotUtils.GetHashColor(item);
-				_stackedObjects.GetOrInsert(item, col);
+				Colormap ??= new();
+				Colormap.GetOrInsert(item, col);
 			}
 			AddTimelineDates(timeline.Select(x => x.Item1));
 			_timelines.Add((timeline, label));
@@ -57,17 +59,52 @@ namespace MyPlotting
 				var barPlotted = _plt.Add.Bars(allTimelineBars.SelectMany(x => x).ToArray());
 				barPlotted.LegendText = label;
 
-				foreach (Bar[] barsColumn in allTimelineBars)
+				if (AddBarCountOnTop)
 				{
-					if (barsColumn.Length == 0) continue;
-					double maxY = barsColumn[^1].Value;
-					double posX = barsColumn[0].Position;
-					var text = _plt.Add.Text($"{PlotUtils.NumericLabeling(barsColumn.Length)}", posX, maxY);
-					text.LabelFontSize = 8;
-					text.LabelFontColor = Colors.Black;
-					text.Alignment = Alignment.LowerCenter;
+					foreach (Bar[] barsColumn in allTimelineBars)
+					{
+						if (barsColumn.Length == 0) continue;
+						double maxY = barsColumn[^1].Value;
+						double posX = barsColumn[0].Position;
+
+						var text = _plt.Add.Text($"{PlotUtils.NumericLabeling(barsColumn.Length)}", posX, maxY);
+						text.LabelFontSize = 8;
+						text.LabelFontColor = Colors.Black;
+						text.Alignment = Alignment.LowerCenter;
+					}
 				}
 			}
+
+			PlotLegend();
+		}
+
+		private void PlotLegend()
+		{
+			Dictionary<Color, string> cmpLegend = GetColormapLegend();
+			_plt.Legend.Alignment = Alignment.MiddleRight;
+			foreach (var colorLegend in cmpLegend)
+			{
+				_plt.Legend.ManualItems.Add(new LegendItem()
+				{
+					LabelText = colorLegend.Value,
+					FillColor = colorLegend.Key
+				});
+			}
+			_plt.Legend.IsVisible = cmpLegend.Count > 0;
+			_plt.ShowLegend(Edge.Right);
+		}
+
+		protected virtual Dictionary<Color, string> GetColormapLegend()
+		{
+			if (Colormap is null) return new();
+			Dictionary<Color, string> cmap = new();
+			foreach (var kv in Colormap)
+			{
+				string? label = cmap.GetOrInsert(kv.Value, "");
+				label += kv.Key.ToString();
+				cmap[kv.Value] = label;
+			}
+			return cmap;
 		}
 
 		private Bar[] CreateTimestampBars(Dictionary<T, double> barsData, int pos)
@@ -77,7 +114,7 @@ namespace MyPlotting
 
 			int i = 0;
 			double baseValue = 0;
-			foreach (T? stackObject in _stackedObjects.Keys.OrderBy(key => key.GetHashCode()))
+			foreach (T? stackObject in Colormap.Keys.OrderBy(key => key.GetHashCode()))
 			{
 				if (barsData.TryGetValue(stackObject, out double value))
 				{
@@ -86,7 +123,7 @@ namespace MyPlotting
 						Position = pos,
 						ValueBase = baseValue,
 						Value = baseValue + value,
-						FillColor = _stackedObjects[stackObject],
+						FillColor = Colormap[stackObject],
 						LineColor = Colors.White
 					};
 					baseValue += value;

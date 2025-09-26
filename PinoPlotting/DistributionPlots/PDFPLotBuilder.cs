@@ -1,4 +1,5 @@
-﻿using ScottPlot;
+﻿using AdvancedDataStructures.Extensions;
+using ScottPlot;
 using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
 
@@ -13,7 +14,7 @@ namespace MyPlotting
 		}
 
 
-		public void AddPDFToPlot(IEnumerable<(double x, double y)> inputData, string label = "", int steps = CDFUtils.DEFAULT_STEPS, Color? color = null)
+		public void AddPDFToPlot(IEnumerable<double> inputData, string label = "", int steps = CDFUtils.DEFAULT_STEPS, Color? color = null)
 		{
 
 			if (!inputData.Any())
@@ -22,43 +23,37 @@ namespace MyPlotting
 			}
 			if (LogX)
 			{
-				inputData = inputData.Where(x => x.x > 0).Select(x => (Math.Log10(x.x), x.y)).ToList();
-				if (!inputData.Any())
+				(double min, double max) = inputData.Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+				if (min == -1 || max == -1) return;
+				_xGenerator ??= new(min, max)
 				{
-					return;
-				}
-
+					LogBase = LogBaseX
+				};
+				inputData = inputData.Select(x => _xGenerator.Log(x)).ToList();
 			}
 
+			List<((double, double) bin, double y)> pdf = CDFUtils.MakePDF(inputData);
 
-			double[] xs = inputData.Select(x => x.x).ToArray();
-			double[] ys = inputData.Select(y => y.y).ToArray();
+			double[] xs = pdf.Select(x => x.bin.Item1).ToArray();
+			double[] ys = pdf.Select(y => y.y).ToArray();
 			if (LogY)
 			{
-				xs = xs.Where((x, i) => ys[i] > 0).ToArray();
-				ys = ys.Where(y => y > 0).Select(y => Math.Log10(y)).ToArray();
+				(double min, double max) = ys.Where(y => y > 0).DefaultIfEmpty(-1).MinMax();
+				_yGenerator ??= new(min, max) { ShowZero = true, LogBase = LogBaseY };
+				ys = ys.Select(y => _yGenerator.Log(y)).ToArray();
 			}
 			var scatter = _plt.Add.Scatter(xs, ys, color);
 			scatter.LegendText = label;
 		}
 
-		public void AddPDFToPlot(IEnumerable<(int x, int y)> inputData, string label = "", int steps = CDFUtils.DEFAULT_STEPS, Color? color = null)
+		public void AddPDFToPlot(IEnumerable<int> inputData, string label = "", int steps = CDFUtils.DEFAULT_STEPS, Color? color = null)
 		{
 			if (!inputData.Any())
 			{
 				return;
 			}
-			if (LogX || LogY)
-			{
-				AddPDFToPlot(inputData.Select(x => ((double)x.x, (double)x.y)), label);
-				return;
-			}
 
-			int[] xs = inputData.Select(x => x.x).ToArray();
-			int[] ys = inputData.Select(y => y.y).ToArray();
-
-			var scatter = _plt.Add.Scatter(xs, ys, color);
-			scatter.LegendText = label;
+			AddPDFToPlot(inputData.Select(x => (double)x), label);
 		}
 
 
@@ -93,13 +88,19 @@ namespace MyPlotting
 
 		protected void FinalizeSettings(string xLabel, string yLabel)
 		{
+			if (LogX)
+			{
+				_xGenerator ??= new(1, 1);
+				_plt.Axes.Bottom.TickGenerator = _xGenerator;
+				(double bttm, double top) = _xGenerator.GetLimits();
+				_plt.Axes.SetLimitsX(bttm, top);
+			}
 			if (LogY)
 			{
-				_plt.Axes.Left.TickGenerator = new NumericAutomatic()
-				{
-					MinorTickGenerator = new LogMinorTickGenerator(),
-					LabelFormatter = x => $"{Math.Pow(10, x):N3}"
-				};
+				_yGenerator ??= new(1, 1);
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+				(double bttm, double top) = _yGenerator.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top);
 			}
 			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
@@ -114,12 +115,11 @@ namespace MyPlotting
 			_plt.Grid.XAxisStyle.MinorLineStyle.Pattern = LinePattern.Dotted;
 			_plt.Grid.YAxisStyle.MinorLineStyle.Pattern = LinePattern.Dotted;
 			_plt.Grid.IsVisible = true;
-			_plt.Axes.Bottom.TickLabelStyle.FontSize = 30f;
-			_plt.Axes.Left.TickLabelStyle.FontSize = 24f;
-			_plt.Legend.FontSize = 30f;
-			_plt.Axes.Bottom.Label.FontSize = 30f;
-			_plt.Axes.Left.Label.FontSize = 30f;
-			_plt.Axes.SetLimits(bottom: LogY ? null : -1, top: LogY ? 2.01 : 101, left: LogX ? null : 0);
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 30f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 30f;
 			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 85, right: 10, bottom: 85));
 			_plt.XLabel(xLabel);
 			_plt.Axes.Bottom.Label.OffsetY = 20f;

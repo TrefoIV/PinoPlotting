@@ -1,15 +1,11 @@
-﻿using ScottPlot;
+﻿using AdvancedDataStructures.Extensions;
+using ScottPlot;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
 {
 	public class ScatterPlotBuilder : AbstractPlot
 	{
-
-		private double minX = 0;
-		private double maxX = 0;
-		private double minY = 0;
-		private double maxY = 0;
 
 		private HashSet<(double x, double y)> _points = new();
 
@@ -23,51 +19,28 @@ namespace MyPlotting
 			if (!inputData.Any()) return;
 			if (LogX)
 			{
-				inputData = inputData.Where(p => p.x > 0).Select(p => (Math.Log10(p.x), p.y)).ToList();
-				if (!inputData.Any())
-				{
-					return;
-				}
-
+				(double min, double max) = inputData.Select(x => x.x).Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+				if (min == -1 || max == -1) return;
+				_xGenerator ??= new(min, max) { LogBase = LogBaseX, ShowZero = true };
+				inputData = inputData.Where(x => x.x >= 0).Select(x => (_xGenerator.Log(x.x), x.y)).ToList();
 			}
-
-			double[] xs = inputData.Select(f => f.x).ToArray();
-			double[] ys = inputData.Select(f => f.y).ToArray();
-
-
-			if (LogY)
+			if (!inputData.Any()) return;
+			if (LogX)
 			{
-				xs = xs.Where((x, i) => ys[i] > 0).ToArray();
-				ys = ys.Where(y => y > 0).Select(y => Math.Log10(y)).ToArray();
+				(double min, double max) = inputData.Select(x => x.y).Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+				if (min == -1 || max == -1) return;
+				_yGenerator ??= new(min, max) { LogBase = LogBaseX, ShowZero = true };
+				inputData = inputData.Where(x => x.y >= 0).Select(x => (x.x, _yGenerator.Log(x.y))).ToList();
 			}
-			foreach (var p in xs.Select((x, i) => (x, ys[i]))) _points.Add(p);
+
+			foreach (var p in inputData) _points.Add(p);
 		}
 
 		public void AddDataToPlot(IEnumerable<(int x, int y)> inputData)
 		{
-			if (LogX || LogY)
-			{
-				AddDataToPlot(inputData.Select(p => ((double)p.x, (double)p.y)));
-			}
-			if (!inputData.Any()) return;
 
-			int[] xs = inputData.Select(f => f.x).ToArray();
-			int[] ys = inputData.Select(f => f.y).ToArray();
-			CheckMinMax(xs.Select(x => (double)x), ys.Select(x => (double)x));
-			foreach (var p in xs.Select((x, i) => (x, ys[i]))) _points.Add(p);
-		}
+			AddDataToPlot(inputData.Select(p => ((double)p.x, (double)p.y)));
 
-		private void CheckMinMax(IEnumerable<double> xs, IEnumerable<double> ys)
-		{
-			int minx = (int)xs.Min() + 1;
-			int maxx = (int)xs.Max() + 1;
-			maxX = maxx > maxX ? maxx : maxX;
-			minX = minx < minX ? minx : minX;
-
-			int miny = (int)ys.Min() + 1;
-			int maxy = (int)ys.Max() + 1;
-			maxY = maxy > maxY ? maxy : maxY;
-			minY = miny < minY ? miny : minY;
 		}
 
 
@@ -77,45 +50,35 @@ namespace MyPlotting
 
 			if (LogX)
 			{
-				maxX = (int)Math.Log10(maxX) + 1;
-				_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
-				{
-					MinorTickGenerator = new LogMinorTickGenerator(),
-					LabelFormatter = x => $"{Math.Pow(10, x):N}",
-				};
-
+				_xGenerator ??= new(1, 1);
+				_plt.Axes.Bottom.TickGenerator = _xGenerator;
+				(double bttm, double top) = _xGenerator.GetLimits();
+				_plt.Axes.SetLimitsX(bttm, top);
 			}
 			else
 			{
-				double exp = Math.Floor(Math.Log10(maxX / 2));
-				if (exp > 1)
-					_plt.Axes.Bottom.TickGenerator = new NumericFixedInterval((int)Math.Pow(10, exp) / 2);
-				else
-					_plt.Axes.Bottom.TickGenerator = new NumericAutomatic();
+				_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = PlotUtils.NumericLabeling
+				};
 			}
 
 			if (LogY)
 			{
-				maxY = (int)Math.Log10(maxY) + 1;
-				_plt.Axes.Left.TickGenerator = new NumericAutomatic()
-				{
-					MinorTickGenerator = new LogMinorTickGenerator(),
-					LabelFormatter = x => $"{Math.Pow(10, x):N3}"
-				};
+				_yGenerator ??= new(1, 1);
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+				(double bttm, double top) = _yGenerator.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top);
 			}
 			else
 			{
-				var exp = Math.Floor(Math.Log10(maxY / 2));
-				if (exp > 1)
-					_plt.Axes.Left.TickGenerator = new NumericFixedInterval((int)Math.Pow(10, exp) / 2);
-				else
-					_plt.Axes.Left.TickGenerator = new NumericAutomatic();
+				_plt.Axes.Left.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = PlotUtils.NumericLabeling
+				};
 			}
 
-
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperCenter;
-			_plt.Axes.SetLimitsY(bottom: minY, top: maxY);
-			_plt.Axes.SetLimitsX(left: minX, right: maxX);
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.Black.WithLightness(0.7f);
 

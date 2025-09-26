@@ -22,12 +22,13 @@ namespace MyPlotting
 		public int Cols { get; private set; }
 		public bool DataThresholding { get; set; } = false;
 		public int WhatToCompute { get; set; } = 0; // 0=correlation, 1=percentage of sums 
+		public IColormap Colormap { get; set; } = new Solar();
 		public bool ScaleColormap { get; set; } = false;
 
 		private int _currentRow = 0;
 		private (TRow, TCol, double?, DisplayItem)[][] _matrix;
-		private double? minValue = null;
-		private double? maxValue = null;
+		private double? _minValue = null;
+		private double? _maxValue = null;
 
 		public CorrelationMatrixPlotBuilder(int rows, int cols) : base(false, false)
 		{
@@ -35,6 +36,10 @@ namespace MyPlotting
 			Cols = cols;
 			_matrix = new (TRow, TCol, double?, DisplayItem)[rows][];
 			_currentRow = 0;
+
+			var restrictedColors = Colormap.GetColors(256, minFraction: 0.1, maxFraction: 0.9);
+			Colormap = new ScottPlot.Colormaps.CustomInterpolated(restrictedColors.Reverse().ToArray());
+
 		}
 
 		public void AddSignalsPairsTimeline(TRow cp, IEnumerable<(TCol, IEnumerable<(int, int)>)> correlationSignals)
@@ -103,81 +108,104 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			Solar colormap = new();
-			double[] xTicks = Enumerable.Range(1, Cols).Select(x => (double)x).ToArray();
-			double[] yTicks = Enumerable.Range(1, Rows).Select(x => (double)x).ToArray();
-			string[] xTickLabels = _matrix[0].Select(x => x.Item2.ToString() ?? "").ToArray();
-			string[] yTickLabels = _matrix.Select(x => x[0].Item1.ToString() ?? "").ToArray();
-
+			List<string> displayedRowsLabels = new();
+			int displayedRows = 0;
 			for (int cp_index = 1; cp_index <= Rows; cp_index++)
 			{
 				if (_matrix[cp_index - 1] == null) throw new Exception("Not enough rows added");
 				if (_matrix[cp_index - 1].Length != Cols) throw new Exception("Not enough columns added");
-
+				if (_matrix[cp_index - 1].All(rowElem => rowElem.Item4 != DisplayItem.Value))
+				{
+					//The row has not any meaningful value; don't plot it and go to the next row
+					continue;
+				}
+				//Add the label for the row
+				displayedRowsLabels.Add(_matrix[cp_index - 1][0].Item1.ToString() ?? "");
+				//Display the row
+				displayedRows++;
 				for (int yearIndex = 1; yearIndex <= Cols; yearIndex++)
 				{
 					DisplayItem display = _matrix[cp_index - 1][yearIndex - 1].Item4;
 					switch (display)
 					{
 						case DisplayItem.Value:
-							DisplayValue(colormap, cp_index, yearIndex);
+							DisplayValue(displayedRows, yearIndex, _matrix[cp_index - 1][yearIndex - 1].Item3.Value);
 							break;
 						case DisplayItem.FirstSignalEmpty:
 							{
-								DrawCross(cp_index, yearIndex, Colors.Blue);
+								DrawCross(displayedRows, yearIndex, Colors.Blue);
 								break;
 							}
 						case DisplayItem.SecondSignalEmpty:
 							{
-								DrawCross(cp_index, yearIndex, Colors.Gray);
+								DrawCross(displayedRows, yearIndex, Colors.Gray);
 								break;
 							}
 						case DisplayItem.NotEnoughData:
 							{
-								DrawCross(cp_index, yearIndex, Colors.Red);
+								DrawCross(displayedRows, yearIndex, Colors.Red);
 								break;
 							}
 						case DisplayItem.NoData:
 							{
-								DrawCross(cp_index, yearIndex, Colors.Black);
+								DrawCross(displayedRows, yearIndex, Colors.Black);
 								break;
 							}
 					}
 				}
 			}
 
+			if (_minValue != null && _maxValue != null)
+			{
+				ColormapLegend colormapLegend = new(Colormap, new ScottPlot.Range(_minValue.Value, _maxValue.Value));
+				if (!ScaleColormap && _maxValue.Value < 1)
+				{
+					colormapLegend.ManualRange = new ScottPlot.Range(0, 1);
+				}
+				var colorLgd = _plt.Add.ColorBar(colormapLegend);
+				colorLgd.Axis.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = x => $"{PlotUtils.NumericLabeling(x)}"
+				};
+			}
+
+
+
+			double[] xTicks = Enumerable.Range(1, Cols).Select(x => (double)x).ToArray();
+			double[] yTicks = Enumerable.Range(1, displayedRows).Select(x => (double)x).ToArray();
+			string[] xTickLabels = _matrix[0].Select(x => x.Item2.ToString() ?? "").ToArray();
+			string[] yTickLabels = displayedRowsLabels.ToArray();
+
 			_plt.Axes.Bottom.TickGenerator = new NumericManual(xTicks, xTickLabels);
 			_plt.Axes.Bottom.Label.Text = xLabel;
 			_plt.Axes.Left.TickGenerator = new NumericManual(yTicks, yTickLabels);
 			_plt.Axes.Left.Label.Text = yLabel;
-			_plt.Axes.SetLimitsY(0, Rows + 1);
+			_plt.Axes.SetLimitsY(0, displayedRows + 1);
 			int width = Math.Max(800, Cols * 15);
-			int height = Math.Max(600, Rows * 15);
-			_plt.SavePng(outFile.FullName + ".png", width, height);
+			int height = Math.Max(600, displayedRows * 15);
+			if (PlottingConstants.ImageFormat.EndsWith(".png"))
+				_plt.SavePng(outFile.FullName + ".png", width, height);
+			else if (PlottingConstants.ImageFormat.EndsWith(".svg"))
+				_plt.SaveSvg(outFile.FullName + ".svg", width, height);
 		}
 
-		private void DisplayValue(Solar colormap, int cp_index, int yearIndex)
+		private void DisplayValue(int cp_index, int x_coord, double corr)
 		{
-			double corr = _matrix[cp_index - 1][yearIndex - 1].Item3 ?? 0;
-			var square = new TextRectangle((yearIndex + 1) - 0.4, (yearIndex + 1) + 0.4, cp_index - 0.4, cp_index + 0.4, PlotUtils.NumericLabeling(corr));
+			var square = new TextRectangle((x_coord + 1) - 0.4, (x_coord + 1) + 0.4, cp_index - 0.4, cp_index + 0.4, PlotUtils.NumericLabeling(corr));
 			square.LineColor = Colors.Transparent;
-			if (maxValue == null)
+			if (_maxValue == null || _minValue == null)
 			{
 				square.FillColor = Colors.Gray;
 				return;
 			}
-			if (maxValue > 1)
+			if (_maxValue > 1 || _minValue < 0 || (ScaleColormap && _maxValue < 1))
 			{
-				//Mappa il valore di correlazione
-				corr /= maxValue.Value;
+				//Scala i valori tra 0 e 1, se sono più grandi di 1, oppure se sono molto piccoli e vuoi scalarli
+				corr = (corr - _minValue.Value) / (_maxValue.Value - _minValue.Value);
 			}
-			if (ScaleColormap && maxValue < 1)
-			{
-				//Devo mappare il max in 0.9, ed il min a 0
-				corr = (corr / maxValue.Value) * 0.9;
-			}
+
 			//Invert the colormap so that dark colors correspond to high values
-			square.FillColor = colormap.GetColor(1 - corr);
+			square.FillColor = Colormap.GetColor(corr);
 			_plt.Add.Plottable(square);
 			_plt.Add.Plottable(square.Text);
 		}
@@ -193,8 +221,8 @@ namespace MyPlotting
 		private void ChangeMinMax(double? value)
 		{
 			if (!value.HasValue) return;
-			if (!maxValue.HasValue || (maxValue.Value < value.Value)) maxValue = value.Value;
-			if (!minValue.HasValue || (minValue.Value > value.Value)) minValue = value.Value;
+			if (!_maxValue.HasValue || (_maxValue.Value < value.Value)) _maxValue = value.Value;
+			if (!_minValue.HasValue || (_minValue.Value > value.Value)) _minValue = value.Value;
 		}
 	}
 }

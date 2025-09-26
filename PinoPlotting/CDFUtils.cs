@@ -49,15 +49,15 @@ namespace MyPlotting
 
 			List<(double, double)> results = new()
 			{
-				(0, 0)
+				(minCommon, 0)
 			};
 
 			double i;
-			for (i = minCommon; i <= maxCommon; i += bucketDimension)
+			for (i = minCommon + bucketDimension; i <= maxCommon; i += bucketDimension)
 			{
 				results.Add((i, inputData.Where(x => x <= i).Count() / (double)inputData.Count() * 100));
 			}
-			if (i != maxCommon)
+			if ((i - bucketDimension) != maxCommon)
 			{
 				results.Add((maxCommon, 100));
 			}
@@ -65,9 +65,9 @@ namespace MyPlotting
 			return results;
 		}
 
-		public static List<(double, double)> MakePDF(IEnumerable<double> inputData, int steps = DEFAULT_STEPS)
+		public static List<((double, double) bin, double)> MakePDF(IEnumerable<double> inputData, int steps = DEFAULT_STEPS)
 		{
-			if (!inputData.Any()) return new List<(double, double)> { (0, 0) };
+			if (!inputData.Any()) return new List<((double, double) bin, double)> { ((0, 0), 0) };
 
 			double maxCommon = inputData.Max();
 			double minCommon = inputData.Min();
@@ -75,27 +75,18 @@ namespace MyPlotting
 			double p = maxCommon - minCommon;
 			double bucketDimension = p / steps;
 
-			if (bucketDimension == 0)
-			{
-				if (maxCommon == 0)
-				{
-					return new List<(double, double)> { (0, 0) };
-				}
-				bucketDimension = maxCommon / steps;
-				minCommon -= bucketDimension * steps;
-			}
-
-			List<(double, double)> results = new();
+			List<((double, double) bin, double)> results = new();
 
 			double i;
-			for (i = minCommon; i <= maxCommon; i += bucketDimension)
+			double totalData = (double)inputData.Count();
+			for (i = minCommon + bucketDimension; i <= maxCommon; i += bucketDimension)
 			{
-				results.Add((i, inputData.Where(x => x <= i).Count()));
+				results.Add(((i - bucketDimension, i), inputData.Where(x => x > (i - bucketDimension) && x <= i).Count() / totalData * 100));
 			}
-			if (i != maxCommon)
-			{
-				results.Add((maxCommon, 100));
-			}
+			//if (i != maxCommon)
+			//{
+			//	results.Add((i - bucketDimension, inputData.Where(x => x > (i - bucketDimension) && x <= maxCommon).Count()));
+			//}
 
 			return results;
 		}

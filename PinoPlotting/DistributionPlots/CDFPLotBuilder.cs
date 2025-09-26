@@ -1,4 +1,5 @@
-﻿using MyPlotting.TickGenerators;
+﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.TickGenerators;
 using ScottPlot;
 using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
@@ -22,28 +23,28 @@ namespace MyPlotting
 			{
 				return;
 			}
-			cdf = PlotUtils.MakeDataGradinoPlot(CDFUtils.MakeCDF(inputData, steps: steps));
-			double[] xs = cdf.Select(x => x.Item1).ToArray();
-			double[] ys = cdf.Select(y => y.Item2).ToArray();
 
 			if (LogX)
 			{
-				double max = xs.Max();
-				double min = ys.Min();
+				(double min, double max) = inputData.Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
+
 				if (_xGenerator is null) _xGenerator = new LogTickGenerator(min, max) { LogBase = LogBaseX };
 				else
 				{
 					_xGenerator.Min = Math.Min(_xGenerator.Min, min);
 					_xGenerator.Max = Math.Max(_xGenerator.Max, max);
 				}
-				xs = xs.Select(x => _xGenerator.Log(x)).ToArray();
+				inputData = inputData.Select(x => _xGenerator.Log(x)).ToArray();
 			}
+
+			cdf = PlotUtils.MakeDataGradinoPlot(CDFUtils.MakeCDF(inputData, steps: steps));
+			double[] xs = cdf.Select(x => x.Item1).ToArray();
+			double[] ys = cdf.Select(y => y.Item2).ToArray();
 
 			if (LogY)
 			{
-				double max = ys.Max();
-				double min = ys.Min();
-				_yGenerator ??= new LogTickGenerator(0, 100) { LogBase = LogBaseY };
+				(double min, double max) = ys.Where(y => y > 0).DefaultIfEmpty(-1).MinMax();
+				_yGenerator ??= new LogTickGenerator(min, 100) { LogBase = LogBaseY };
 				ys = ys.Select(y => _yGenerator.Log(y)).ToArray();
 			}
 			var scatter = _plt.Add.Scatter(xs, ys, color);
@@ -90,8 +91,10 @@ namespace MyPlotting
 
 			if (LogX)
 			{
-				_xGenerator ??= new LogTickGenerator(0, 0) { LogBase = LogBaseX };
+				_xGenerator ??= new LogTickGenerator(1, 1) { LogBase = LogBaseX };
 				_plt.Axes.Bottom.TickGenerator = _xGenerator;
+				(double bttm, double top) = _xGenerator.GetLimits();
+				_plt.Axes.SetLimitsX(bttm, top);
 			}
 			else
 			{
@@ -117,7 +120,10 @@ namespace MyPlotting
 		{
 			if (LogY)
 			{
-				_yGenerator ??= new LogTickGenerator(0, 100) { LogBase = LogBaseY };
+				_yGenerator ??= new LogTickGenerator(1, 100) { LogBase = LogBaseY };
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+				(double bttm, double top) = _yGenerator.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top);
 			}
 			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
@@ -132,12 +138,11 @@ namespace MyPlotting
 			_plt.Grid.XAxisStyle.MinorLineStyle.Pattern = LinePattern.Dotted;
 			_plt.Grid.YAxisStyle.MinorLineStyle.Pattern = LinePattern.Dotted;
 			_plt.Grid.IsVisible = true;
-			_plt.Axes.Bottom.TickLabelStyle.FontSize = 14f;
-			_plt.Axes.Left.TickLabelStyle.FontSize = 14f;
-			//_plt.Legend.Font.Size = 20f;
-			_plt.Axes.Bottom.Label.FontSize = 20f;
-			_plt.Axes.Left.Label.FontSize = 20f;
-			_plt.Axes.SetLimits(bottom: LogY ? null : -1, top: LogY ? 2.01 : 101, left: LogX ? null : 0);
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 85, right: 10, bottom: 85));
 			_plt.XLabel(xLabel);
 			_plt.Axes.Bottom.Label.OffsetY = 20f;

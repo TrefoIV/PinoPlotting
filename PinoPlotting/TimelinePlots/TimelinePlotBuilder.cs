@@ -10,8 +10,10 @@ namespace MyPlotting
 		{
 			WeeklyDay,
 			Montly,
+			Yearly,
 			FullDate
 		}
+		public DataTimeUnit TimeUnit { get; set; } = DataTimeUnit.Second;
 		public DateTimeLabelingStrategy LabelinStrategy { get; set; }
 		public bool Squeeze { get; set; }
 
@@ -36,8 +38,10 @@ namespace MyPlotting
 
 			if (LogY)
 			{
-				_plt.Axes.Left.TickGenerator = _yGenerator ?? new(1, 1) { ShowZero = false };
-				_plt.Axes.SetLimitsY(_yGenerator.ShowZero ? _yGenerator.Log(0) : Math.Floor(_yGenerator.Log(_yGenerator.Min)), Math.Ceiling(_yGenerator.Log(_yGenerator.Max)));
+				_yGenerator ??= new(1, 1) { ShowZero = false };
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+				(double bttm, double top) = _yGenerator.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top);
 			}
 			else _plt.Axes.Left.TickGenerator = new NumericAutomatic() { LabelFormatter = PlotUtils.NumericLabeling };
 
@@ -45,14 +49,25 @@ namespace MyPlotting
 			_plt.Grid.MinorLineWidth = 0.5f;
 			_plt.Axes.Left.Label.Text = yLabel;
 			_plt.Axes.Bottom.Label.Text = xLabel;
-			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 75, right: 75, bottom: 105));
-			int xSize = Squeeze ? 800 : Math.Max(800, xLen * 10);
-			_plt.Save(outFile.FullName + ".png", xSize, 600);
+			int legendSize = 250;
+			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 75, right: legendSize + 15, bottom: 105));
+			int xSize = Squeeze ? 800 : Math.Max(800, xLen * 10 + legendSize);
+
+			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
+				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
+				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
+			else
+			{
+				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
+			}
+
 		}
 
 		protected virtual int BuildXaxis()
 		{
 			double[] xs = Enumerable.Range(1, _allDates.Count).Select(x => (double)x).ToArray();
+			_plt.Axes.SetLimitsX(0, xs.Length + 1);
 			string[] xlabels = _allDates.Select(x =>
 			{
 				return LabelinStrategy switch
@@ -60,6 +75,7 @@ namespace MyPlotting
 					DateTimeLabelingStrategy.WeeklyDay => DayDateLabeling(x),
 					DateTimeLabelingStrategy.Montly => MonthDateLabeling(x),
 					DateTimeLabelingStrategy.FullDate => FullDateLabeling(x),
+					DateTimeLabelingStrategy.Yearly => $"{x.Year}",
 					_ => "Label error"
 				};
 			}).ToArray();
