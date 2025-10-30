@@ -8,6 +8,7 @@ namespace MyPlotting.TickGenerators
 		public double Min { get; set; }
 		public double Max { get; set; }
 		public bool IsTimeSpan { get; set; }
+		public Func<double, string> LabelFormatter { get; set; } = PlotUtils.NumericLabeling;
 
 		public LogTickGenerator(double min, double max)
 		{
@@ -45,7 +46,7 @@ namespace MyPlotting.TickGenerators
 			{
 				tempTicks = tempTicks.Append(Tick.Major(order, CreateLabel(order)));
 			}
-			Ticks = tempTicks.ToArray();
+			Ticks = tempTicks.Where(x => x.Position >= range.Min && x.Position <= range.Max).ToArray();
 		}
 
 		private int GetMinorTicksNumber(int currentOrder, int maxOrder)
@@ -65,7 +66,7 @@ namespace MyPlotting.TickGenerators
 
 		private string CreateLabel(double pos)
 		{
-			return IsTimeSpan ? PlotUtils.SpanLabeling(Pow(pos)) : PlotUtils.NumericLabeling(Pow(pos));
+			return IsTimeSpan ? PlotUtils.SpanLabeling(Pow(pos)) : LabelFormatter(Pow(pos));
 		}
 
 		public (double minLimit, double maxLimit) GetLimits()

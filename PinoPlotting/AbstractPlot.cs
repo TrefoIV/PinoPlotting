@@ -1,5 +1,8 @@
 ﻿using MyPlotting.TickGenerators;
+using PdfSharp.Drawing;
+using PdfSharp.Pdf;
 using ScottPlot;
+using SkiaSharp;
 
 namespace MyPlotting
 {
@@ -45,6 +48,41 @@ namespace MyPlotting
 
 		public abstract void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "");
 
+		public void SavePdf(string outputPath, int width, int height)
+		{
+			string svgContent = _plt.GetSvgXml(width, height);
+			var svg = new Svg.Skia.SKSvg();
+			svg.FromSvg(svgContent);
+
+			// Create PDF document
+			using var document = new PdfDocument();
+			var page = document.AddPage();
+			page.Width = svg.Picture.CullRect.Width;
+			page.Height = svg.Picture.CullRect.Height;
+
+			using var gfx = XGraphics.FromPdfPage(page);
+			using var bitmap = new SKBitmap((int)page.Width, (int)page.Height);
+			using var canvas = new SKCanvas(bitmap);
+
+			// Render SVG onto the bitmap
+			canvas.DrawPicture(svg.Picture);
+			canvas.Flush();
+
+			// Convert the bitmap to image for PDF
+			using MemoryStream imageStream = new MemoryStream();
+			using SKImage image = SKImage.FromBitmap(bitmap);
+			using SKData data = image.Encode(SKEncodedImageFormat.Png, 100);
+			data.SaveTo(imageStream);
+
+			// Draw image into PDF
+			imageStream.Position = 0;
+			var pdfImage = XImage.FromStream(imageStream);
+			gfx.DrawImage(pdfImage, 0, 0, page.Width, page.Height);
+
+			// Save PDF
+			document.Save(outputPath);
+
+		}
 
 	}
 }

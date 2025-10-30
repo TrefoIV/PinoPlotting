@@ -49,7 +49,7 @@ namespace MyPlotting
 			if (UseColorMap)
 			{
 				var fullColormap = new ScottPlot.Colormaps.Greens();
-				var restrictedColors = fullColormap.GetColors(256, minFraction: 0.1, maxFraction: 0.8);
+				var restrictedColors = fullColormap.GetColors(256, minFraction: 0.1, maxFraction: 0.8).Reverse().ToArray();
 				colormap = new ScottPlot.Colormaps.CustomInterpolated(restrictedColors);
 			}
 			if (!_dataList.Any()) return;
@@ -73,7 +73,7 @@ namespace MyPlotting
 					double mean = (point.bin.Item1 + point.bin.Item2) / 2;
 					double value = point.count / max.Value;
 					//Mappa la size tra 5 e 15. 0 va su 5 e 1 va su 15
-					float size = (float)value * 10 + 5;
+					float size = (float)value * 15 + 10;
 
 					Color? c = colormap?.GetColor(value);
 					var s = _plt.Add.Marker(mean, y, shape: MarkerShape.FilledCircle, size, c);
@@ -89,9 +89,11 @@ namespace MyPlotting
 			{
 				ColormapLegend cp = new(colormap, new ScottPlot.Range(0, max.Value));
 				var colorLegend = _plt.Add.ColorBar(cp);
+				colorLegend.Axis.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 15f;
+
 				colorLegend.Axis.TickGenerator = new NumericAutomatic()
 				{
-					LabelFormatter = x => $"{PlotUtils.NumericLabeling(x):F2}%"
+					LabelFormatter = x => $"{PlotUtils.NumericLabeling(x)}%"
 				};
 			}
 		}
@@ -168,11 +170,18 @@ namespace MyPlotting
 			_plt.Axes.Bottom.Label.Text = xLabel;
 			_plt.Axes.Left.Label.Text = yLabel;
 			_plt.Legend.Alignment = LegendAlignment ?? Alignment.LowerRight;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
 				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");

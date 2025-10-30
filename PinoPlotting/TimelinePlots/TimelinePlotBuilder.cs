@@ -1,23 +1,40 @@
-﻿using ScottPlot;
+﻿using AdvancedDataStructures.ConcatenatedList;
+using MyPlotting.Axis;
+using MyPlotting.TimeUnits;
+using ScottPlot;
 using ScottPlot.TickGenerators;
-using System.Globalization;
 
 namespace MyPlotting
 {
 	public abstract class TimelinePlotBuilder : AbstractPlot
 	{
-		public enum DateTimeLabelingStrategy
-		{
-			WeeklyDay,
-			Montly,
-			Yearly,
-			FullDate
-		}
 		public DataTimeUnit TimeUnit { get; set; } = DataTimeUnit.Second;
-		public DateTimeLabelingStrategy LabelinStrategy { get; set; }
 		public bool Squeeze { get; set; }
+		public Func<double, string>? yLabelFormatter { get; set; } = null;
 
 		protected SortedSet<DateTime> _allDates = new();
+
+		private Dictionary<DateTime, int>? _allDatesToPos = null;
+
+		protected Dictionary<DateTime, int> DatePositions
+		{
+			get
+			{
+				if (_allDatesToPos is null)
+				{
+					(var min, var max) = (_allDates.First(), _allDates.Last());
+					int pos = 1;
+					_allDatesToPos = new Dictionary<DateTime, int>();
+					DateTime d = min;
+					while (d <= max)
+					{
+						_allDatesToPos[d] = pos++;
+						d = TimeUnit.GetTimeUnit().Next(d, 1);
+					}
+				}
+				return _allDatesToPos;
+			}
+		}
 
 		public TimelinePlotBuilder(bool logX, bool logY) : base(logX, logY)
 		{
@@ -36,68 +53,100 @@ namespace MyPlotting
 			PlotAllTimelines();
 			int xLen = BuildXaxis();
 
-			if (LogY)
-			{
-				_yGenerator ??= new(1, 1) { ShowZero = false };
-				_plt.Axes.Left.TickGenerator = _yGenerator;
-				(double bttm, double top) = _yGenerator.GetLimits();
-				_plt.Axes.SetLimitsY(bttm, top);
-			}
-			else _plt.Axes.Left.TickGenerator = new NumericAutomatic() { LabelFormatter = PlotUtils.NumericLabeling };
+			BuilYAxis();
+
 
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
-			_plt.Grid.MinorLineWidth = 0.5f;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
+
+			_plt.Grid.MinorLineWidth = Squeeze ? 0f : 0.5f;
 			_plt.Axes.Left.Label.Text = yLabel;
 			_plt.Axes.Bottom.Label.Text = xLabel;
 			int legendSize = 250;
-			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 75, right: legendSize + 15, bottom: 105));
-			int xSize = Squeeze ? 800 : Math.Max(800, xLen * 10 + legendSize);
-
+			_plt.Axes.Right.MinimumSize = TimeUnit.GetLabelingStrategy() == DateTimeLabelingStrategy.FullDate ? 75 : 0;
+			//float leftPadding = _plt.Axes.Left.TickLabelStyle.FontSize * 2.5f;
+			//float bttmPadding = _pl
+			//_plt.Layout.Fixed(new PixelPadding(top: 10, left: leftPadding, right: legendSize + 15, bottom: 105));
+			int xSize = (Squeeze ? 800 : Math.Max(800, xLen * 5)) + legendSize + 75;
+			//_plt.Legend.Orientation = Orientation.Horizontal;
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
+				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
+				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
 			}
-
 		}
 
 		protected virtual int BuildXaxis()
 		{
-			double[] xs = Enumerable.Range(1, _allDates.Count).Select(x => (double)x).ToArray();
-			_plt.Axes.SetLimitsX(0, xs.Length + 1);
-			string[] xlabels = _allDates.Select(x =>
+			_plt.Axes.Remove(_plt.Axes.Bottom);
+
+			bool rotateLabels = true;
+
+			ITickGenerator tickGenerator = new NumericManual(GenerateTicks());
+			RotatedLabelAdaptableAxis axis = new(tickGenerator);
+			_plt.Axes.AddBottomAxis(axis);
+			_plt.Axes.Bottom.TickGenerator = tickGenerator;
+			_plt.Axes.Bottom.TickLabelStyle.Rotation = rotateLabels ? 45 : 0;
+			_plt.Axes.Bottom.TickLabelStyle.Alignment = rotateLabels ? Alignment.UpperLeft : Alignment.UpperCenter;
+			_plt.Grid.XAxis = axis;
+
+			return _allDates.Count;
+		}
+
+		protected virtual void BuilYAxis()
+		{
+			yLabelFormatter ??= PlotUtils.NumericLabeling;
+			if (LogY)
 			{
-				return LabelinStrategy switch
+				_yGenerator ??= new(1, 1) { ShowZero = false };
+				_yGenerator.LabelFormatter = yLabelFormatter;
+				_plt.Axes.Left.TickGenerator = _yGenerator;
+				(double bttm, double top) = _yGenerator.GetLimits();
+				_plt.Axes.SetLimitsY(bttm, top);
+			}
+			else _plt.Axes.Left.TickGenerator = new NumericAutomatic() { LabelFormatter = yLabelFormatter };
+		}
+
+		private Tick[] GenerateTicks()
+		{
+			DateTimeLabelingStrategy labelingStrategy = TimeUnit.GetLabelingStrategy() ?? DateTimeLabelingStrategy.FullDate;
+			var labelFormatter = labelingStrategy.GetFormatFunc();
+			var nextDateFunc = TimeUnit.GetTimeUnit();
+
+			DateTime startDate = _allDates.First();
+			DateTime endDate = _allDates.Last();
+			int majorTickSpacing = TimeUnit.GetIdealMajorTickSpacing(new CoordinateRange(0, _allDates.Count));
+
+			ConcatenatedLinkedList<Tick> ticks = new ConcatenatedLinkedList<Tick>();
+			double tickPosition;
+			DateTime tickDate = startDate;
+			while (tickDate <= endDate)
+			{
+				tickPosition = DatePositions[tickDate];
+				Tick major = new Tick(tickPosition, labelFormatter(tickDate), isMajor: true);
+				ticks.Add(major);
+
+				DateTime minorDate = nextDateFunc.Next(tickDate, 1);
+				tickDate = nextDateFunc.Next(tickDate, majorTickSpacing);
+				while (minorDate <= endDate && minorDate < tickDate)
 				{
-					DateTimeLabelingStrategy.WeeklyDay => DayDateLabeling(x),
-					DateTimeLabelingStrategy.Montly => MonthDateLabeling(x),
-					DateTimeLabelingStrategy.FullDate => FullDateLabeling(x),
-					DateTimeLabelingStrategy.Yearly => $"{x.Year}",
-					_ => "Label error"
-				};
-			}).ToArray();
+					tickPosition = DatePositions[minorDate];
+					Tick minor = new(tickPosition, "", false);
+					ticks.Add(minor);
+					minorDate = nextDateFunc.Next(minorDate, 1);
+				}
+			}
 
-			_plt.Axes.Bottom.TickGenerator = new NumericManual(xs, xlabels);
-			_plt.Axes.Bottom.TickLabelStyle.FontSize *= 0.7f;
-			_plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
-			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.MiddleLeft;
-			return xs.Length;
-		}
-
-		protected static string DayDateLabeling(DateTime date)
-		{
-			return date.DayOfWeek == DayOfWeek.Monday ? date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) : $"{date.DayOfWeek.ToString()[0]}";
-		}
-		protected static string MonthDateLabeling(DateTime date)
-		{
-			return date.ToString("MMM/yyyy", CultureInfo.InvariantCulture);
-		}
-		protected static string FullDateLabeling(DateTime date)
-		{
-			return date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+			return ticks.ToArray();
 		}
 	}
 }

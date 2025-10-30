@@ -62,12 +62,17 @@ namespace MyPlotting
 
 
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
-			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.IsVisible = true;
+
 			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+
 			int xSize = Squeeze ? 800 : (int)_plt.Axes.GetLimits().Right * 10;
 			if (xLabel != null)
 				_plt.XLabel(xLabel);
@@ -78,6 +83,8 @@ namespace MyPlotting
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
 				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, xSize, 600);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");

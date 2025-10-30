@@ -91,6 +91,8 @@ namespace MyPlotting
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
 				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");

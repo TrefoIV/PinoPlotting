@@ -59,20 +59,10 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			BuildAxes();
-
-			FinalizeSettings(xLabel, yLabel);
-			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
-			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
-			else
-			{
-				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
-			}
+			SavePlot(outFile, null, xLabel, yLabel);
 		}
 
-		public void SavePlot(FileInfo outFile, double max, string xLabel = "", string yLabel = "")
+		public void SavePlot(FileInfo outFile, double? max, string xLabel = "", string yLabel = "")
 		{
 			BuildAxes(max);
 			FinalizeSettings(xLabel, yLabel);
@@ -80,6 +70,8 @@ namespace MyPlotting
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
 				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
@@ -122,12 +114,15 @@ namespace MyPlotting
 			{
 				_yGenerator ??= new LogTickGenerator(1, 100) { LogBase = LogBaseY };
 				_plt.Axes.Left.TickGenerator = _yGenerator;
+				_yGenerator.LabelFormatter = PlotUtils.PercentagesFormatter;
 				(double bttm, double top) = _yGenerator.GetLimits();
 				_plt.Axes.SetLimitsY(bttm, top);
 			}
-			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
-			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
-			_plt.Axes.Bottom.TickLabelStyle.AntiAliasText = false;
+			else _plt.Axes.Left.TickGenerator = new NumericFixedInterval(10)
+			{
+				LabelFormatter = PlotUtils.PercentagesFormatter
+			};
+
 			_plt.Legend.IsVisible = true;
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MajorLineWidth = 1;
@@ -143,9 +138,8 @@ namespace MyPlotting
 			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
 			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
-			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 85, right: 10, bottom: 85));
+
 			_plt.XLabel(xLabel);
-			_plt.Axes.Bottom.Label.OffsetY = 20f;
 			_plt.YLabel(yLabel);
 		}
 

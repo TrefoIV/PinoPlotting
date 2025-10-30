@@ -1,7 +1,7 @@
 ﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.TimeUnits;
 using ScottPlot;
 using ScottPlot.Plottables;
-using ScottPlot.TickGenerators;
 using static MyPlotting.PlotUtils;
 
 namespace MyPlotting
@@ -11,7 +11,8 @@ namespace MyPlotting
 
 		public bool DrawBoxes { get; set; }
 		public bool UseSignal { get; set; }
-		private List<(IEnumerable<(DateTime, BoxWithAverage)>, string, Color?)> _timelines = new();
+		protected List<(IEnumerable<(DateTime, BoxWithAverage)>, string, Color)> _timelines = new();
+		private IPalette palette = new ScottPlot.Palettes.Category10();
 
 		public NumericalTimelinePlotBuilder(bool logX, bool logY, bool drawBoxes = true) : base(logX, logY)
 		{
@@ -25,6 +26,7 @@ namespace MyPlotting
 
 		public void AddTimeline(IDictionary<DateTime, double> data, string label = "", Color? color = null)
 		{
+			color ??= palette.GetColor(_timelines.Count);
 			IOrderedEnumerable<KeyValuePair<DateTime, double>> p = data.OrderBy(x => x.Key);
 			BoxWithAverage[] boxes = p.Select(x => new BoxWithAverage
 			{
@@ -34,20 +36,21 @@ namespace MyPlotting
 
 			AddTimelineDates(data.Keys);
 
-			_timelines.Add((p.Select((date, i) => (date.Key, boxes[i])), label, color));
+			_timelines.Add((p.Select((date, i) => (date.Key, boxes[i])), label, color.Value));
 		}
 
 		public void AddTimeline(IDictionary<DateTime, IEnumerable<double>> data, string label = "", Color? color = null)
 		{
+			color ??= _plt.Add.GetNextColor();
 			IOrderedEnumerable<KeyValuePair<DateTime, IEnumerable<double>>> p = data.OrderBy(x => x.Key);
 			BoxWithAverage[] boxes = p.Select(x => GetPercentileBox(x.Value)).ToArray();
 
 			AddTimelineDates(data.Keys);
 
-			_timelines.Add((p.Select((date, i) => (date.Key, boxes[i])), label, color));
+			_timelines.Add((p.Select((date, i) => (date.Key, boxes[i])), label, color.Value));
 		}
 
-		protected sealed override void PlotAllTimelines()
+		protected override void PlotAllTimelines()
 		{
 
 			if (LogY)
@@ -73,32 +76,31 @@ namespace MyPlotting
 				}
 			}
 
-			Dictionary<DateTime, int> date2x = _allDates.Select((d, i) => (d, i + 1)).ToDictionary(x => x.d, x => x.Item2);
-			foreach ((IEnumerable<(DateTime, BoxWithAverage)>, string, Color?) timeline in _timelines)
+			foreach ((IEnumerable<(DateTime, BoxWithAverage)>, string, Color) timeline in _timelines)
 			{
 				if (UseSignal)
 				{
-					AddSignal(timeline, date2x);
+					AddSignal(timeline);
 
 				}
 				else
-					AddScatter(timeline.Item1.Select(x => (date2x[x.Item1], x.Item2)).ToArray(), timeline.Item2, timeline.Item3);
+					AddScatter(timeline.Item1.Select(x => (DatePositions[x.Item1], x.Item2)).ToArray(), timeline.Item2, timeline.Item3);
 			}
 		}
 
-		private void AddSignal((IEnumerable<(DateTime, BoxWithAverage)>, string, Color?) timeline, Dictionary<DateTime, int> date2x)
+		private void AddSignal((IEnumerable<(DateTime, BoxWithAverage)>, string, Color) timeline)
 		{
 			DateTime startTime = timeline.Item1.Select(x => x.Item1).Order().First();
 
-			double[] yValues = Enumerable.Range(0, date2x.Count).Select(_ => double.NaN).ToArray();
+			double[] yValues = Enumerable.Range(0, DatePositions.Count).Select(_ => double.NaN).ToArray();
 			foreach (var value in timeline.Item1)
 			{
-				yValues[date2x[value.Item1] - 1] = value.Item2.Average;
+				yValues[DatePositions[value.Item1] - 1] = value.Item2.Average;
 			}
 			double period = GetPeriod(timeline.Item1);
 			var signal = _plt.Add.Signal(yValues, period: period);
 			signal.Data.XOffset = startTime.ToOADate();
-			if (timeline.Item3 != null) signal.LineColor = timeline.Item3.Value;
+			signal.LineColor = timeline.Item3;
 			signal.LegendText = timeline.Item2;
 		}
 
@@ -131,7 +133,7 @@ namespace MyPlotting
 			}
 		}
 
-		protected Scatter AddScatter((int, BoxWithAverage)[] timeline, string label, Color? color)
+		protected Scatter AddScatter((int, BoxWithAverage)[] timeline, string label, Color color)
 		{
 			double[] yData = timeline.Select(c => c.Item2.Average).ToArray();
 
@@ -139,6 +141,7 @@ namespace MyPlotting
 
 			var scatter = _plt.Add.Scatter(xs, yData, color: color);
 			scatter.Axes.YAxis = _plt.Axes.Left;
+			scatter.LineWidth *= 1.5f;
 			scatter.MarkerSize *= 0.5f;
 			scatter.LegendText = label;
 
@@ -151,7 +154,7 @@ namespace MyPlotting
 					var b = _plt.Add.Box(timeline[i].Item2.Box);
 					b.Axes.YAxis = _plt.Axes.Left;
 					b.FillColor = Colors.Transparent;
-					if (color is not null) b.LineColor = color.Value;
+					b.LineColor = color;
 					b.LineWidth = 0.75f;
 				}
 			return scatter;
@@ -159,15 +162,9 @@ namespace MyPlotting
 
 		protected override int BuildXaxis()
 		{
-			if (UseSignal)
-			{
-				_plt.Axes.DateTimeTicksBottom();
-				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperCenter;
-				((DateTimeAutomatic)_plt.Axes.Bottom.TickGenerator).LabelFormatter = FullDateLabeling;
-				return _allDates.Count;
-			}
-			else
-				return base.BuildXaxis();
+			var n = base.BuildXaxis();
+			_plt.Axes.SetLimitsX(0, DatePositions.Count + 1);
+			return n;
 		}
 	}
 }

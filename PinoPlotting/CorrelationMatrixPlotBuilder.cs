@@ -1,7 +1,8 @@
-﻿
+﻿using MyPlotting.Axis;
 using MyPlotting.CustomPlottable;
 using ScottPlot;
 using ScottPlot.Colormaps;
+using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
@@ -24,6 +25,8 @@ namespace MyPlotting
 		public int WhatToCompute { get; set; } = 0; // 0=correlation, 1=percentage of sums 
 		public IColormap Colormap { get; set; } = new Solar();
 		public bool ScaleColormap { get; set; } = false;
+		public bool DisplayValuesInCells { get; set; } = true;
+		public bool EncodeYElements { get; set; } = false;
 
 		private int _currentRow = 0;
 		private (TRow, TCol, double?, DisplayItem)[][] _matrix;
@@ -71,7 +74,7 @@ namespace MyPlotting
 			}
 			int sum1 = signals.Sum(x => x.Item1);
 			int sum2 = signals.Sum(x => x.Item2);
-			return ((double)sum1 / sum2, DisplayItem.Value);
+			return (((double)sum1 / sum2) * 100, DisplayItem.Value);
 		}
 
 		private (double? value, DisplayItem display) CheckEnoughData(IEnumerable<(int, int)> signals)
@@ -82,7 +85,7 @@ namespace MyPlotting
 			if (firstAllZero && secondAllZero) return (null, DisplayItem.NoData);
 			if (secondAllZero) return (null, DisplayItem.SecondSignalEmpty);
 			if (firstAllZero) return (null, DisplayItem.FirstSignalEmpty);
-			if (DataThresholding && (signals.Where(x => x.Item2 > 0).Count() < signals.Count() / 2)) return (null, DisplayItem.NotEnoughData);
+			if (DataThresholding && (signals.Where(x => x.Item2 > 0).Count() / signals.Count() < 0.75)) return (null, DisplayItem.NotEnoughData);
 
 			return (null, DisplayItem.Value);
 		}
@@ -95,18 +98,73 @@ namespace MyPlotting
 				return (value, display);
 			}
 
-			double max1 = signals.Max(x => x.Item1);
-			double norm1 = max1 * Math.Sqrt(signals.Sum(x => (x.Item1 / max1) * (x.Item1 / max1)));
+			double mean1 = signals.Average(x => x.Item1);
+			double mean2 = signals.Average(x => x.Item2);
 
-			double max2 = signals.Max(x => x.Item2);
-			double norm2 = max2 * Math.Sqrt(signals.Sum(x => (x.Item2 / max2) * (x.Item2 / max2)));
+			double norm1 = Math.Sqrt(signals.Sum(x => Math.Pow(x.Item1 - mean1, 2)));
+			double norm2 = Math.Sqrt(signals.Sum(x => Math.Pow(x.Item2 - mean2, 2)));
 
-			double productSum = signals.Sum(x => (x.Item1 / norm1) * (x.Item2 / norm2));
-			double correlation = Math.Sqrt(Math.Abs(productSum));
+			double productSum = signals.Sum(x => (x.Item1 - mean1) * (x.Item2 - mean2));
+			double correlation = Math.Abs(productSum / (norm1 * norm2));
 			return (correlation, DisplayItem.Value);
 		}
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
+		{
+			List<string> displayedRowsLabels = DrawMatrix();
+			int displayedRows = displayedRowsLabels.Count;
+			BuildYAxix(displayedRowsLabels, yLabel, outFile);
+
+			double[] xTicks = Enumerable.Range(1, Cols).Select(x => (double)x).ToArray();
+			string[] xTickLabels = _matrix[0].Select(x => x.Item2.ToString() ?? "").ToArray();
+			var xtickGenerator = new NumericManual(xTicks, xTickLabels);
+			_plt.Axes.Remove(_plt.Axes.Bottom);
+			var axBottom = new RotatedLabelAdaptableAxis(xtickGenerator);
+			_plt.Axes.AddBottomAxis(axBottom);
+			_plt.PlottableList.ForEach(p => p.Axes.XAxis = axBottom);
+			_plt.Axes.Bottom.Label.Text = xLabel;
+			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
+			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
+
+
+
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
+
+			int width = Math.Max(800, Cols * 15);
+			int height = Math.Max(600, displayedRows * 20);
+			if (PlottingConstants.ImageFormat.EndsWith(".png"))
+				_plt.SavePng(outFile.FullName + ".png", width, height);
+			else if (PlottingConstants.ImageFormat.EndsWith(".svg"))
+				_plt.SaveSvg(outFile.FullName + ".svg", width, height);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, width, height);
+		}
+
+		private void BuildYAxix(List<string> displayedRowsLabels, string yLabel, FileInfo outFile)
+		{
+			int displayedRows = displayedRowsLabels.Count;
+
+			double[] yTicks = Enumerable.Range(1, displayedRows).Select(x => (double)x).ToArray();
+			string[] yTickLabels = displayedRowsLabels.ToArray();
+			if (EncodeYElements)
+			{
+				using StreamWriter writer = new(outFile.FullName + "_Yelements.txt");
+				for (int i = 0; i < displayedRowsLabels.Count; i++)
+				{
+					writer.WriteLine($"{i + 1}\t{displayedRowsLabels[i]}");
+					yTickLabels[i] = $"{i + 1}";
+				}
+			}
+			_plt.Axes.Left.TickGenerator = new NumericManual(yTicks, yTickLabels);
+			_plt.Axes.Left.Label.Text = yLabel;
+			_plt.Axes.SetLimitsY(0, displayedRows + 1);
+		}
+
+		private List<string> DrawMatrix()
 		{
 			List<string> displayedRowsLabels = new();
 			int displayedRows = 0;
@@ -114,7 +172,7 @@ namespace MyPlotting
 			{
 				if (_matrix[cp_index - 1] == null) throw new Exception("Not enough rows added");
 				if (_matrix[cp_index - 1].Length != Cols) throw new Exception("Not enough columns added");
-				if (_matrix[cp_index - 1].All(rowElem => rowElem.Item4 != DisplayItem.Value))
+				if (_matrix[cp_index - 1].Count(rowElem => rowElem.Item4 == DisplayItem.Value) <= 2)
 				{
 					//The row has not any meaningful value; don't plot it and go to the next row
 					continue;
@@ -123,13 +181,13 @@ namespace MyPlotting
 				displayedRowsLabels.Add(_matrix[cp_index - 1][0].Item1.ToString() ?? "");
 				//Display the row
 				displayedRows++;
-				for (int yearIndex = 1; yearIndex <= Cols; yearIndex++)
+				for (int yearIndex = 0; yearIndex < Cols; yearIndex++)
 				{
-					DisplayItem display = _matrix[cp_index - 1][yearIndex - 1].Item4;
+					DisplayItem display = _matrix[cp_index - 1][yearIndex].Item4;
 					switch (display)
 					{
 						case DisplayItem.Value:
-							DisplayValue(displayedRows, yearIndex, _matrix[cp_index - 1][yearIndex - 1].Item3.Value);
+							DisplayValue(displayedRows, yearIndex, _matrix[cp_index - 1][yearIndex].Item3.Value);
 							break;
 						case DisplayItem.FirstSignalEmpty:
 							{
@@ -163,35 +221,29 @@ namespace MyPlotting
 					colormapLegend.ManualRange = new ScottPlot.Range(0, 1);
 				}
 				var colorLgd = _plt.Add.ColorBar(colormapLegend);
+				colorLgd.Axis.Label.Text = WhatToCompute == 0 ? "Correlation" : "Percentage";
+				colorLgd.Axis.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 18f;
+				colorLgd.Axis.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 16f;
 				colorLgd.Axis.TickGenerator = new NumericAutomatic()
 				{
-					LabelFormatter = x => $"{PlotUtils.NumericLabeling(x)}"
+					LabelFormatter = WhatToCompute == 0 ? PlotUtils.NumericLabeling : PlotUtils.PercentagesFormatter
 				};
 			}
-
-
-
-			double[] xTicks = Enumerable.Range(1, Cols).Select(x => (double)x).ToArray();
-			double[] yTicks = Enumerable.Range(1, displayedRows).Select(x => (double)x).ToArray();
-			string[] xTickLabels = _matrix[0].Select(x => x.Item2.ToString() ?? "").ToArray();
-			string[] yTickLabels = displayedRowsLabels.ToArray();
-
-			_plt.Axes.Bottom.TickGenerator = new NumericManual(xTicks, xTickLabels);
-			_plt.Axes.Bottom.Label.Text = xLabel;
-			_plt.Axes.Left.TickGenerator = new NumericManual(yTicks, yTickLabels);
-			_plt.Axes.Left.Label.Text = yLabel;
-			_plt.Axes.SetLimitsY(0, displayedRows + 1);
-			int width = Math.Max(800, Cols * 15);
-			int height = Math.Max(600, displayedRows * 15);
-			if (PlottingConstants.ImageFormat.EndsWith(".png"))
-				_plt.SavePng(outFile.FullName + ".png", width, height);
-			else if (PlottingConstants.ImageFormat.EndsWith(".svg"))
-				_plt.SaveSvg(outFile.FullName + ".svg", width, height);
+			return displayedRowsLabels;
 		}
 
 		private void DisplayValue(int cp_index, int x_coord, double corr)
 		{
-			var square = new TextRectangle((x_coord + 1) - 0.4, (x_coord + 1) + 0.4, cp_index - 0.4, cp_index + 0.4, PlotUtils.NumericLabeling(corr));
+			Rectangle square = DisplayValuesInCells ?
+				new TextRectangle((x_coord + 1) - 0.4, (x_coord + 1) + 0.4, cp_index - 0.4, cp_index + 0.4, PlotUtils.NumericLabeling(corr)) :
+				new Rectangle()
+				{
+					X1 = (x_coord + 1) - 0.4,
+					X2 = (x_coord + 1) + 0.4,
+					Y1 = cp_index - 0.4,
+					Y2 = cp_index + 0.4
+				};
+
 			square.LineColor = Colors.Transparent;
 			if (_maxValue == null || _minValue == null)
 			{
@@ -207,7 +259,7 @@ namespace MyPlotting
 			//Invert the colormap so that dark colors correspond to high values
 			square.FillColor = Colormap.GetColor(corr);
 			_plt.Add.Plottable(square);
-			_plt.Add.Plottable(square.Text);
+			if (DisplayValuesInCells) _plt.Add.Plottable(((TextRectangle)square).Text);
 		}
 
 		private void DrawCross(int cp_index, int yearIndex, Color color)

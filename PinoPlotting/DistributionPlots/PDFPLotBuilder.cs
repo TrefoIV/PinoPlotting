@@ -1,6 +1,5 @@
 ﻿using AdvancedDataStructures.Extensions;
 using ScottPlot;
-using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
@@ -59,27 +58,14 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			if (LogX)
-			{
-				double[] allX = _plt.PlottableList.Select(x => x as Scatter).SelectMany(s => s.Data.GetScatterPoints().Select(p => p.X)).ToArray();
-
-				_plt.Axes.Bottom.TickGenerator = new NumericManual(allX, allX.Select(x => $"{Math.Pow(10, x):N0}").ToArray());
-				//_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
-				//{
-				//	MinorTickGenerator = new LogMinorTickGenerator()
-				//	{
-				//		Divisions = 10
-				//	},
-				//	LabelFormatter = x => $"{Math.Pow(10, x):N}",
-				//};
-
-			}
 
 			FinalizeSettings(xLabel, yLabel);
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
 				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 700);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
@@ -95,12 +81,27 @@ namespace MyPlotting
 				(double bttm, double top) = _xGenerator.GetLimits();
 				_plt.Axes.SetLimitsX(bttm, top);
 			}
+			else
+			{
+				_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = PlotUtils.NumericLabeling
+				};
+			}
 			if (LogY)
 			{
 				_yGenerator ??= new(1, 1);
 				_plt.Axes.Left.TickGenerator = _yGenerator;
+				_yGenerator.LabelFormatter = PlotUtils.PercentagesFormatter;
 				(double bttm, double top) = _yGenerator.GetLimits();
 				_plt.Axes.SetLimitsY(bttm, top);
+			}
+			else
+			{
+				_plt.Axes.Left.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = PlotUtils.PercentagesFormatter
+				};
 			}
 			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;

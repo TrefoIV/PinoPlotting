@@ -57,7 +57,7 @@ namespace MyPlotting
 			if (Colormap is null) return new();
 			Dictionary<Color, string> result = new();
 
-			foreach (var kvp in Colormap)
+			foreach (var kvp in Colormap.OrderByDescending(k => k.Key))
 			{
 				if (result.TryGetValue(kvp.Value, out var label))
 				{
@@ -88,5 +88,12 @@ namespace MyPlotting
 			}
 
 		}
+
+		protected override void BuilYAxis()
+		{
+			yLabelFormatter = PlotUtils.PercentagesFormatter;
+			base.BuilYAxis();
+		}
+
 	}
 }

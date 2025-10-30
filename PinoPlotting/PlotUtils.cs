@@ -1,6 +1,8 @@
-﻿using ScottPlot;
+﻿using AdvancedDataStructures.Extensions;
+using ScottPlot;
 using ScottPlot.Plottables;
 using ScottPlot.TickGenerators;
+using System.Globalization;
 
 namespace MyPlotting
 {
@@ -137,17 +139,28 @@ namespace MyPlotting
 				result += "-";
 				n *= -1;
 			}
-			if (n >= 1_000_000)
+			if (n >= 1_000_000_000_000)
 			{
-				int k = (int)(n % 1_000_000 / 100_000);
+				//Usa notazionescientifica
+				result += n.ToString("E1", CultureInfo.InvariantCulture);
+			}
+			else if (n >= 1_000_000_000)
+			{
+				long k = (long)(n % 1_000_000_000 / 100_000_000);
 				string ks = k == 0 ? "" : "." + k.ToString("D");
-				result += $"{(int)(n / 1_000_000)}{ks}M";
+				result += $"{(long)(n / 1_000_000_000)}{ks}B";
+			}
+			else if (n >= 1_000_000)
+			{
+				long k = (long)(n % 1_000_000 / 100_000);
+				string ks = k == 0 ? "" : "." + k.ToString("D");
+				result += $"{(long)(n / 1_000_000)}{ks}M";
 			}
 			else if (n >= 1_000)
 			{
-				int cent = (int)(n % 1_000 / 100);
+				long cent = (long)(n % 1_000 / 100);
 				string centS = cent == 0 ? "" : "." + cent.ToString("D");
-				result += $"{(int)(n / 1_000)}{centS}K";
+				result += $"{(long)(n / 1_000)}{centS}K";
 			}
 			else if (n == 0)
 			{
@@ -155,15 +168,12 @@ namespace MyPlotting
 			}
 			else if (n < 0.01)
 			{
-				//Notazione scientifica per numeri piccolissimi
-				int exp = 0;
-				while (n < 1)
-				{
-					n *= 10;
-					exp--;
-				}
-
-				result += n.ToString("F2") + "e" + exp.ToString("D");
+				result += n.ToString("E2", CultureInfo.InvariantCulture);
+			}
+			//Se n è intero, printalo intero
+			else if (((int)n) == n)
+			{
+				result += ((int)n).ToString();
 			}
 			else
 			{
@@ -173,11 +183,9 @@ namespace MyPlotting
 			return result;
 		}
 
-		public static string NumericLabeling(int n)
+		public static string PercentagesFormatter(double y)
 		{
-			if (Math.Abs(n) >= 1_000_000_000)
-				return NumericLabeling((double)n);
-			return n.ToString();
+			return NumericLabeling(y) + "%";
 		}
 
 		public static string SpanLabeling(double x)
@@ -193,8 +201,8 @@ namespace MyPlotting
 			if (years > 0) label += $"{years}y";
 			if (span.Days > 0) label += $"{span.Days}d";
 			if (years == 0 && span.Hours > 0) label += $"{span.Hours}h";
-			if (years == 0 && span.Days < 10 && span.Minutes > 0) label += $"{span.Minutes}m";
-			if (years == 0 && span.Days < 10 && span.Seconds > 0) label += $"{span.Seconds}s";
+			if (years == 0 && span.Days == 0 && span.Minutes > 0) label += $"{span.Minutes}m";
+			if (years == 0 && span.Days == 0 && span.Hours == 0 && span.Seconds > 0) label += $"{span.Seconds}s";
 			return label;
 		}
 
@@ -244,6 +252,43 @@ namespace MyPlotting
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
+			}
+		}
+
+
+		public static (double BreakStart, double BreakEnd) FindAxisBreak(List<double> values)
+		{
+			if (values == null || values.Count == 0)
+				throw new ArgumentException("Values list must not be empty.");
+
+
+			// Compute quartiles
+			BoxWithAverage percentileBox = GetPercentileBox(values);
+			double Q1 = percentileBox.Box.BoxMin;
+			double Q3 = percentileBox.Box.BoxMax;
+			double IQR = Q3 - Q1;
+
+			double lowerCutoff = Q1 - 1.5 * IQR;
+			double upperCutoff = Q3 + 1.5 * IQR;
+
+			(double minVal, double maxVal) = values.MinMax();
+
+			// Case 1: High outliers
+			if (maxVal > upperCutoff)
+			{
+				double breakStart = values.Where(v => v <= upperCutoff).Max();
+				return (breakStart, maxVal);
+			}
+			// Case 2: Low outliers
+			else if (minVal < lowerCutoff && minVal >= 0)
+			{
+				double breakEnd = values.Where(v => v >= lowerCutoff).Min();
+				return (minVal, breakEnd);
+			}
+			// Case 3: No outliers
+			else
+			{
+				return (maxVal, maxVal); // break "on top", size ~0
 			}
 		}
 

@@ -35,13 +35,12 @@ namespace MyPlotting
 				_yGenerator ??= new LogTickGenerator(minY, maxY) { LogBase = LogBaseY, NaturalLog = false, IsTimeSpan = false };
 			}
 
-			var date2pos = _allDates.Select((date, i) => (date, i + 1)).ToDictionary(x => x.date, x => x.Item2);
 			foreach ((var timeline, var label) in _timelines)
 			{
 				Bar[][] allTimelineBars = new Bar[timeline.Count()][];
 				foreach (var item in timeline.Select((x, i) => (x, i)))
 				{
-					Bar[] bars = CreateTimestampBars(item.x.Item2, date2pos[item.x.Item1]);
+					Bar[] bars = CreateTimestampBars(item.x.Item2, DatePositions[item.x.Item1]);
 					allTimelineBars[item.i] = bars;
 
 				}
@@ -90,8 +89,10 @@ namespace MyPlotting
 					FillColor = colorLegend.Key
 				});
 			}
-			_plt.Legend.IsVisible = cmpLegend.Count > 0;
-			_plt.ShowLegend(Edge.Right);
+			_plt.Legend.InterItemPadding = new PixelPadding(0.01f);
+			if (cmpLegend.Count > 0 && cmpLegend.Count < 25)
+				_plt.ShowLegend(Edge.Right);
+			else _plt.Legend.IsVisible = false;
 		}
 
 		protected virtual Dictionary<Color, string> GetColormapLegend()
@@ -107,7 +108,7 @@ namespace MyPlotting
 			return cmap;
 		}
 
-		private Bar[] CreateTimestampBars(Dictionary<T, double> barsData, int pos)
+		private Bar[] CreateTimestampBars(Dictionary<T, double> barsData, double pos)
 		{
 			int bars = barsData.Count;
 			Bar[] result = new Bar[bars];
