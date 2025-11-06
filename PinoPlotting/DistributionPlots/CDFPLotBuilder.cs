@@ -8,6 +8,7 @@ namespace MyPlotting
 {
 	public class CDFPLotBuilder : AbstractPlot
 	{
+		public bool RotateAxis { get; set; } = false;
 
 		public CDFPLotBuilder(bool logX = false, bool logY = false)
 			: base(logX, logY)
@@ -81,6 +82,7 @@ namespace MyPlotting
 		private void BuildAxes(double? max = null)
 		{
 
+
 			if (LogX)
 			{
 				_xGenerator ??= new LogTickGenerator(1, 1) { LogBase = LogBaseX };
@@ -105,6 +107,10 @@ namespace MyPlotting
 					xTicks,
 					xTicks.Select(n => PlotUtils.NumericLabeling(n)).ToArray()
 				);
+			}
+			if (RotateAxis)
+			{
+				_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
 			}
 		}
 
