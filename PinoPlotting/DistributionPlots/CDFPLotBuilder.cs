@@ -111,6 +111,7 @@ namespace MyPlotting
 			if (RotateAxis)
 			{
 				_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
+				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
 			}
 		}
 
