@@ -9,6 +9,7 @@ namespace MyPlotting
 	public class CDFPLotBuilder : AbstractPlot
 	{
 		public bool RotateAxis { get; set; } = false;
+		public Func<double, string> XLabelFormatter { get; set; } = PlotUtils.NumericLabeling;
 
 		public CDFPLotBuilder(bool logX = false, bool logY = false)
 			: base(logX, logY)
@@ -85,7 +86,7 @@ namespace MyPlotting
 
 			if (LogX)
 			{
-				_xGenerator ??= new LogTickGenerator(1, 1) { LogBase = LogBaseX };
+				_xGenerator ??= new LogTickGenerator(1, 1) { LogBase = LogBaseX, LabelFormatter = XLabelFormatter };
 				_plt.Axes.Bottom.TickGenerator = _xGenerator;
 				(double bttm, double top) = _xGenerator.GetLimits();
 				_plt.Axes.SetLimitsX(bttm, top);
@@ -105,7 +106,7 @@ namespace MyPlotting
 
 				_plt.Axes.Bottom.TickGenerator = new NumericManual(
 					xTicks,
-					xTicks.Select(n => PlotUtils.NumericLabeling(n)).ToArray()
+					xTicks.Select(n => XLabelFormatter(n)).ToArray()
 				);
 			}
 			if (RotateAxis)
