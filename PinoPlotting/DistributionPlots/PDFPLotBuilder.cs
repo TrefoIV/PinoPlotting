@@ -1,10 +1,11 @@
 ﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.DistributionPlots;
 using ScottPlot;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
 {
-	public class PDFPLotBuilder : AbstractPlot
+	public class PDFPLotBuilder : AbstractDistributionPlot
 	{
 
 		public PDFPLotBuilder(bool logX = false, bool logY = false)
@@ -58,7 +59,7 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-
+			BuildXAxis(null);
 			FinalizeSettings(xLabel, yLabel);
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
@@ -72,22 +73,10 @@ namespace MyPlotting
 			}
 		}
 
+
+
 		protected void FinalizeSettings(string xLabel, string yLabel)
 		{
-			if (LogX)
-			{
-				_xGenerator ??= new(1, 1);
-				_plt.Axes.Bottom.TickGenerator = _xGenerator;
-				(double bttm, double top) = _xGenerator.GetLimits();
-				_plt.Axes.SetLimitsX(bttm, top);
-			}
-			else
-			{
-				_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
-				{
-					LabelFormatter = PlotUtils.NumericLabeling
-				};
-			}
 			if (LogY)
 			{
 				_yGenerator ??= new(1, 1);
@@ -119,11 +108,10 @@ namespace MyPlotting
 			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
-			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 30f;
-			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 30f;
-			_plt.Layout.Fixed(new PixelPadding(top: 10, left: 85, right: 10, bottom: 85));
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
+
 			_plt.XLabel(xLabel);
-			_plt.Axes.Bottom.Label.OffsetY = 20f;
 			_plt.YLabel(yLabel);
 		}
 	}
