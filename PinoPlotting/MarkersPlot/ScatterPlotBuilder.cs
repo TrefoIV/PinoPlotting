@@ -61,7 +61,13 @@ namespace MyPlotting
 			AddDataToPlot(inputData.Select(p => (p.x, (double)p.y, (double?)p.v)));
 		}
 
-		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "", string colormapLabel = "")
+
+		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
+		{
+			SavePlot(outFile, xLabel, yLabel, "");
+		}
+
+		public void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "", string colormapLabel = "")
 		{
 
 			double? vMax = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Max();
