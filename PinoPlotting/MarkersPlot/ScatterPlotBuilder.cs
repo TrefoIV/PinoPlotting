@@ -1,5 +1,6 @@
 ﻿using AdvancedDataStructures.Extensions;
 using ScottPlot;
+using ScottPlot.Colormaps;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
@@ -7,14 +8,19 @@ namespace MyPlotting
 	public class ScatterPlotBuilder : AbstractPlot
 	{
 
-		private HashSet<(double x, double y)> _points = new();
+		private Dictionary<(double x, double y), double?> _points = new();
+		public IColormap Colormap { get; private set; } = new Greens();
 
-		public ScatterPlotBuilder(bool logX = false, bool logY = false)
+		public ScatterPlotBuilder(bool logX = false, bool logY = false, IColormap? baseColormap = null)
 			: base(logX, logY)
 		{
+			var restrictedColors = baseColormap?.GetColors(256, minFraction: 0.1, maxFraction: 0.9) ??
+										Colormap.GetColors(256, minFraction: 0.1, maxFraction: 0.9);
+			Colormap = new ScottPlot.Colormaps.CustomInterpolated(restrictedColors.Reverse().ToArray());
 		}
 
-		public void AddDataToPlot(IEnumerable<(double x, double y)> inputData)
+
+		public void AddDataToPlot(IEnumerable<(double x, double y, double? v)> inputData)
 		{
 			if (!inputData.Any()) return;
 			if (LogX)
@@ -22,7 +28,7 @@ namespace MyPlotting
 				(double min, double max) = inputData.Select(x => x.x).Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
 				if (min == -1 || max == -1) return;
 				_xGenerator ??= new(min, max) { LogBase = LogBaseX, ShowZero = true };
-				inputData = inputData.Where(x => x.x >= 0).Select(x => (_xGenerator.Log(x.x), x.y)).ToList();
+				inputData = inputData.Where(x => x.x >= 0).Select(x => (_xGenerator.Log(x.x), x.y, x.v)).ToList();
 			}
 			if (!inputData.Any()) return;
 			if (LogX)
@@ -30,23 +36,50 @@ namespace MyPlotting
 				(double min, double max) = inputData.Select(x => x.y).Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
 				if (min == -1 || max == -1) return;
 				_yGenerator ??= new(min, max) { LogBase = LogBaseX, ShowZero = true };
-				inputData = inputData.Where(x => x.y >= 0).Select(x => (x.x, _yGenerator.Log(x.y))).ToList();
+				inputData = inputData.Where(x => x.y >= 0).Select(x => (x.x, _yGenerator.Log(x.y), x.v)).ToList();
 			}
 
-			foreach (var p in inputData) _points.Add(p);
+			foreach (var p in inputData)
+			{
+				double? existingValue = _points.GetValueOrDefault((p.x, p.y));
+				double? newValue = existingValue.HasValue || p.v.HasValue ? (existingValue ?? 0) + (p.v ?? 0) : null;
+
+				_points[(p.x, p.y)] = newValue;
+			}
 		}
 
 		public void AddDataToPlot(IEnumerable<(int x, int y)> inputData)
 		{
 
-			AddDataToPlot(inputData.Select(p => ((double)p.x, (double)p.y)));
+			AddDataToPlot(inputData.Select(p => ((double)p.x, (double)p.y, (double?)null)));
 
 		}
 
+		public void AddDataToPlot(IEnumerable<(double x, int y, double v)> inputData)
+		{
+			AddDataToPlot(inputData.Select(p => (p.x, (double)p.y, (double?)p.v)));
+		}
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			var scatter = _plt.Add.Markers(_points.Select(p => p.x).ToArray(), _points.Select(p => p.y).ToArray(), size: 3);
+
+			double? vMax = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Max();
+			double? vMin = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Min();
+
+			foreach (var p in _points)
+			{
+				double? v = p.Value;
+				if (v.HasValue)
+				{
+					double t = (v.Value - vMin!.Value) / vMax!.Value;
+					Color c = Colormap.GetColor(t);
+					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: (float)(t * 10) + 5, color: c);
+				}
+				else
+				{
+					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: 3, color: Colors.Gray);
+				}
+			}
 
 			if (LogX)
 			{
