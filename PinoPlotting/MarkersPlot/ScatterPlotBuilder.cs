@@ -1,4 +1,5 @@
 ﻿using AdvancedDataStructures.Extensions;
+using MyPlotting.CustomPlottable;
 using ScottPlot;
 using ScottPlot.Colormaps;
 using ScottPlot.TickGenerators;
@@ -60,7 +61,7 @@ namespace MyPlotting
 			AddDataToPlot(inputData.Select(p => (p.x, (double)p.y, (double?)p.v)));
 		}
 
-		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
+		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "", string colormapLabel = "")
 		{
 
 			double? vMax = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Max();
@@ -79,6 +80,16 @@ namespace MyPlotting
 				{
 					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: 3, color: Colors.Gray);
 				}
+			}
+
+			if (vMax != null && vMin != null)
+			{
+				ColormapLegend colormapLegend = new(Colormap, new ScottPlot.Range(vMin!.Value, vMax!.Value));
+
+				var colorLgd = _plt.Add.ColorBar(colormapLegend);
+				colorLgd.Axis.Label.Text = colormapLabel;
+				colorLgd.Axis.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 18f;
+				colorLgd.Axis.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 16f;
 			}
 
 			if (LogX)
