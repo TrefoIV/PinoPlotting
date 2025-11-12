@@ -92,9 +92,7 @@ namespace MyPlotting
 					LabelFormatter = PlotUtils.PercentagesFormatter
 				};
 			}
-			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
-			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
-			_plt.Axes.Bottom.TickLabelStyle.AntiAliasText = false;
+
 			_plt.Legend.IsVisible = true;
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MajorLineWidth = 1;
