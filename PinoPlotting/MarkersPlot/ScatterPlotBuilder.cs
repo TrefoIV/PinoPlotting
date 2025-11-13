@@ -82,9 +82,11 @@ namespace MyPlotting
 				{
 					double t = (v.Value - vMin!.Value) / vMax!.Value;
 					Color c = Colormap.GetColor(t);
-					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: (float)(t * 10) + BaseSize, color: c);
-					marker.MarkerLineColor = Colors.Black;
-					marker.MarkerLineWidth = 0.5f;
+					float size = (float)(t * 10) + BaseSize;
+					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: size, color: c);
+					var border = _plt.Add.Marker(p.Key.x, p.Key.y, shape: MarkerShape.OpenCircle, size: size + 0.5f, color: Colors.Black);
+					border.MarkerLineColor = Colors.Black;
+					border.MarkerLineWidth = 0.5f;
 				}
 				else
 				{
