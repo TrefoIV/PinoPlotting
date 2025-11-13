@@ -12,6 +12,8 @@ namespace MyPlotting
 		private Dictionary<(double x, double y), double?> _points = new();
 		public IColormap Colormap { get; private set; } = new Greens();
 
+		public float BaseSize { get; set; } = 5f;
+
 		public ScatterPlotBuilder(bool logX = false, bool logY = false, IColormap? baseColormap = null)
 			: base(logX, logY)
 		{
@@ -80,13 +82,13 @@ namespace MyPlotting
 				{
 					double t = (v.Value - vMin!.Value) / vMax!.Value;
 					Color c = Colormap.GetColor(t);
-					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: (float)(t * 10) + 5, color: c);
+					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: (float)(t * 10) + BaseSize, color: c);
 					marker.MarkerLineColor = Colors.Black;
 					marker.MarkerLineWidth = 0.5f;
 				}
 				else
 				{
-					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: 3, color: Colors.Gray);
+					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: BaseSize - 2, color: Colors.Gray);
 					marker.MarkerLineColor = Colors.Black;
 				}
 			}
