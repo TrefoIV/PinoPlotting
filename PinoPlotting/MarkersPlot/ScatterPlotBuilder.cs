@@ -81,10 +81,13 @@ namespace MyPlotting
 					double t = (v.Value - vMin!.Value) / vMax!.Value;
 					Color c = Colormap.GetColor(t);
 					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: (float)(t * 10) + 5, color: c);
+					marker.MarkerLineColor = Colors.Black;
+					marker.MarkerLineWidth = 0.5f;
 				}
 				else
 				{
 					var marker = _plt.Add.Marker(p.Key.x, p.Key.y, size: 3, color: Colors.Gray);
+					marker.MarkerLineColor = Colors.Black;
 				}
 			}
 
@@ -96,6 +99,10 @@ namespace MyPlotting
 				colorLgd.Axis.Label.Text = colormapLabel;
 				colorLgd.Axis.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 18f;
 				colorLgd.Axis.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 16f;
+				colorLgd.Axis.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = PlotUtils.NumericLabeling
+				};
 			}
 
 			if (LogX)
@@ -132,7 +139,6 @@ namespace MyPlotting
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.Black.WithLightness(0.7f);
 
-			_plt.Layout.Fixed(new PixelPadding(top: 15, right: 10, left: 150, bottom: 50));
 
 			_plt.XLabel(xLabel);
 			_plt.YLabel(yLabel);
