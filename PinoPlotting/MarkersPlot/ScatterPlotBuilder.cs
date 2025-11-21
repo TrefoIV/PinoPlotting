@@ -1,5 +1,6 @@
 ﻿using AdvancedDataStructures.Extensions;
 using MyPlotting.CustomPlottable;
+using MyPlotting.TickGenerators;
 using ScottPlot;
 using ScottPlot.Colormaps;
 using ScottPlot.TickGenerators;
@@ -11,6 +12,8 @@ namespace MyPlotting
 
 		private Dictionary<(double x, double y), double?> _points = new();
 		public IColormap Colormap { get; private set; } = new Greens();
+		public bool UseLogColorScale { get; set; } = false;
+		private LogTickGenerator? _logColorTickGenerator = null;
 
 		public float BaseSize { get; set; } = 5f;
 
@@ -34,13 +37,14 @@ namespace MyPlotting
 				inputData = inputData.Where(x => x.x >= 0).Select(x => (_xGenerator.Log(x.x), x.y, x.v)).ToList();
 			}
 			if (!inputData.Any()) return;
-			if (LogX)
+			if (LogY)
 			{
 				(double min, double max) = inputData.Select(x => x.y).Where(x => x > 0).DefaultIfEmpty(-1).MinMax();
 				if (min == -1 || max == -1) return;
 				_yGenerator ??= new(min, max) { LogBase = LogBaseX, ShowZero = true };
 				inputData = inputData.Where(x => x.y >= 0).Select(x => (x.x, _yGenerator.Log(x.y), x.v)).ToList();
 			}
+
 
 			foreach (var p in inputData)
 			{
@@ -75,11 +79,20 @@ namespace MyPlotting
 			double? vMax = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Max();
 			double? vMin = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Min();
 
+			if (UseLogColorScale && vMax.HasValue && vMin.HasValue)
+			{
+				_logColorTickGenerator ??= new LogTickGenerator(vMin.Value, vMax.Value) { LogBase = 10, ShowZero = false };
+				_logColorTickGenerator.LabelFormatter = PlotUtils.NumericLabeling;
+				vMax = _logColorTickGenerator.Log(vMax.Value);
+				vMin = _logColorTickGenerator.Log(vMin.Value);
+			}
+
 			foreach (var p in _points)
 			{
 				double? v = p.Value;
 				if (v.HasValue)
 				{
+					v = UseLogColorScale ? _logColorTickGenerator!.Log(v.Value) : v.Value;
 					double t = (v.Value - vMin!.Value) / vMax!.Value;
 					Color c = Colormap.GetColor(t);
 					float size = (float)(t * 10) + BaseSize;
@@ -97,13 +110,14 @@ namespace MyPlotting
 
 			if (vMax != null && vMin != null)
 			{
+
 				ColormapLegend colormapLegend = new(Colormap, new ScottPlot.Range(vMin!.Value, vMax!.Value));
 
 				var colorLgd = _plt.Add.ColorBar(colormapLegend);
 				colorLgd.Axis.Label.Text = colormapLabel;
 				colorLgd.Axis.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 18f;
 				colorLgd.Axis.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 16f;
-				colorLgd.Axis.TickGenerator = new NumericAutomatic()
+				colorLgd.Axis.TickGenerator = UseLogColorScale ? _logColorTickGenerator! : new NumericAutomatic()
 				{
 					LabelFormatter = PlotUtils.NumericLabeling
 				};
