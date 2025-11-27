@@ -45,7 +45,10 @@ namespace MyPlotting.TimelinePlots
 			{
 				throw new InvalidOperationException("Cannot make a polynomial fit with negative degree");
 			}
-
+			if (x.Length == 0)
+			{
+				return (x, y);
+			}
 			// Fit polynomial (degree 2)
 			double[] pCoefficients = Fit.Polynomial(x, y, PolynomialDegree);
 
@@ -76,6 +79,10 @@ namespace MyPlotting.TimelinePlots
 			//y = a * exp(b * x)
 			//ln(y) = ln(a) + b * x
 			//fitting ln(y) = A + B * x
+			if (x.Length == 0)
+			{
+				return (x, y);
+			}
 			double[] logY = y.Select(v => Math.Log2(v)).ToArray();
 			double[] pCoefficients = Fit.Polynomial(x, logY, 1); //p[0] = A, p[1] = B
 			Console.WriteLine($"{label} Exponential fit: y = {Math.Exp(pCoefficients[0])} * 2^({pCoefficients[1]} * x)");
