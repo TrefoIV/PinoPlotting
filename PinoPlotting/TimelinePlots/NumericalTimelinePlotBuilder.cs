@@ -108,21 +108,21 @@ namespace MyPlotting
 		{
 			switch (TimeUnit)
 			{
-				case DataTimeUnit.Second:
+				case DateTimeIntervalUnit.Second:
 					return 1.0 / (24 * 60 * 60);
-				case DataTimeUnit.Minute:
+				case DateTimeIntervalUnit.Minute:
 					return 1.0 / (24 * 60);
-				case DataTimeUnit.Hour:
+				case DateTimeIntervalUnit.Hour:
 					return 1.0 / (24);
-				case DataTimeUnit.Day:
+				case DateTimeIntervalUnit.Day:
 					return 1.0;
-				case DataTimeUnit.Week:
+				case DateTimeIntervalUnit.Week:
 					return 7.0;
-				case DataTimeUnit.Month:
+				case DateTimeIntervalUnit.Month:
 					throw new InvalidOperationException("Cannot use a monthly period with signal timelines");
-				case DataTimeUnit.Year:
+				case DateTimeIntervalUnit.Year:
 					throw new InvalidOperationException("Cannot use a yearly period with signal timelines");
-				case DataTimeUnit.RegularCustom:
+				case DateTimeIntervalUnit.RegularCustom:
 					{
 						TimeSpan span = timeline.Skip(1).First().Item1 - timeline.First().Item1;
 						return span.TotalSeconds * (1.0 / (24 * 60 * 60));

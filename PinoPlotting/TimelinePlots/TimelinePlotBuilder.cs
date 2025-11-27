@@ -8,7 +8,7 @@ namespace MyPlotting
 {
 	public abstract class TimelinePlotBuilder : AbstractPlot
 	{
-		public DataTimeUnit TimeUnit { get; set; } = DataTimeUnit.Second;
+		public DateTimeIntervalUnit TimeUnit { get; set; } = DateTimeIntervalUnit.Second;
 		public bool Squeeze { get; set; }
 		public Func<double, string>? yLabelFormatter { get; set; } = null;
 
