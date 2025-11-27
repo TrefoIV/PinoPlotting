@@ -26,10 +26,14 @@ namespace MyPlotting
 					int pos = 1;
 					_allDatesToPos = new Dictionary<DateTime, int>();
 					DateTime d = min;
+					IEnumerator<DateTime> dateEnum = _allDates.Skip(1).GetEnumerator();
+
 					while (d <= max)
 					{
 						_allDatesToPos[d] = pos++;
-						d = TimeUnit.GetTimeUnit().Next(d, 1);
+						if (TimeUnit == DateTimeIntervalUnit.None)
+							d = dateEnum.MoveNext() ? dateEnum.Current : max.AddDays(1);
+						else d = TimeUnit.GetTimeUnit().Next(d, 1);
 					}
 				}
 				return _allDatesToPos;
@@ -118,6 +122,11 @@ namespace MyPlotting
 
 		private Tick[] GenerateTicks()
 		{
+			if (TimeUnit == DateTimeIntervalUnit.None)
+			{
+				return GenerateTicksOnNullTimeUnit();
+			}
+
 			DateTimeLabelingStrategy labelingStrategy = TimeUnit.GetLabelingStrategy() ?? DateTimeLabelingStrategy.FullDate;
 			var labelFormatter = labelingStrategy.GetFormatFunc();
 			var nextDateFunc = TimeUnit.GetTimeUnit();
@@ -146,6 +155,19 @@ namespace MyPlotting
 				}
 			}
 
+			return ticks.ToArray();
+		}
+
+		private Tick[] GenerateTicksOnNullTimeUnit()
+		{
+			ConcatenatedLinkedList<Tick> ticks = new ConcatenatedLinkedList<Tick>();
+			var labelFormatter = DateTimeLabelingStrategy.FullDate.GetFormatFunc();
+			foreach (var date in _allDates)
+			{
+				double tickPosition = DatePositions[date];
+				Tick tick = new Tick(tickPosition, labelFormatter(date), isMajor: true);
+				ticks.Add(tick);
+			}
 			return ticks.ToArray();
 		}
 	}
