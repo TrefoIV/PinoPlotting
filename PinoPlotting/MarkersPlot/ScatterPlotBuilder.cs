@@ -157,6 +157,13 @@ namespace MyPlotting
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.Black.WithLightness(0.7f);
 
+			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
+
 
 			_plt.XLabel(xLabel);
 			_plt.YLabel(yLabel);
