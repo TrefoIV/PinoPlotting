@@ -94,6 +94,15 @@ namespace MyPlotting
 				LabelFormatter = PlotUtils.PercentagesFormatter
 			};
 
+			foreach (var bar in _verticalBars)
+			{
+				double x = LogX ? _xGenerator.Log(bar.x) : bar.x;
+				var vline = _plt.Add.VerticalLine(x, color: bar.c);
+				vline.Text = bar.label;
+				vline.LabelOppositeAxis = true;
+				vline.LineStyle.Pattern = LinePattern.Dashed;
+			}
+
 			_plt.Legend.IsVisible = true;
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
 			_plt.Grid.MajorLineWidth = 1;
