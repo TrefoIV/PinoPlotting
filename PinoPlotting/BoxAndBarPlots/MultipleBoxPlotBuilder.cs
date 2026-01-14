@@ -1,7 +1,9 @@
 ﻿
 using AdvancedDataStructures.ConcatenatedList;
 using AdvancedDataStructures.Extensions;
+using MyPlotting.Axis;
 using ScottPlot;
+using ScottPlot.Palettes;
 using ScottPlot.TickGenerators;
 
 namespace MyPlotting
@@ -15,12 +17,14 @@ namespace MyPlotting
 		private List<string> _groupsLabels = [];
 		private Color[] _colormap;
 
+		private static Category20 palette = new();
+
 		public MultipleBoxPlotBuilder(bool logY, int classes) : base(false, logY)
 		{
 			_classes = classes;
 			_colormap = new Color[classes];
 			for (int i = 0; i < _colormap.Length; i++)
-				_colormap[i] = _plt.Add.GetNextColor();
+				_colormap[i] = palette.GetColor(i % 20);
 		}
 
 		public void AddClassesLabels(string?[] labels)
@@ -44,21 +48,46 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
+			GenerateXAxis();
 			GenerateBars();
 			GenerateLegend();
-			GenerateXAxis();
+			_plt.Axes.Bottom.Label.Text = xLabel;
+			_plt.Axes.Left.Label.Text = yLabel;
+			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
+			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
+			_plt.Legend.Alignment = LegendAlignment ?? Alignment.UpperRight;
+			int xSize = Math.Max(1200, _groupsLabels.Count * Math.Max(_classes, 15));
+			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
+				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
+			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
+				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
+			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
+			else
+			{
+				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
+			}
 		}
 
 		private void GenerateXAxis()
 		{
+			_plt.Axes.Remove(Edge.Bottom);
+
 			Tick[] ticks = Enumerable.Range(0, _barGroups.Count).Select(i =>
 			{
-				int baseIndex = i * _barGroups.Count + i + 1;
-				int lastIndex = baseIndex + _classes;
-				double pos = ((double)(lastIndex - baseIndex)) / 2;
+				int baseIndex = i * (_classes + 1) + 1;
+				int lastIndex = baseIndex + _classes - 1;
+				double pos = ((double)(lastIndex + baseIndex)) / 2;
 				return new Tick(pos, _groupsLabels[i], true);
 			}).ToArray();
-			_plt.Axes.Bottom.TickGenerator = new NumericManual(ticks);
+			var tickGenerator = new NumericManual(ticks);
+			RotatedLabelAdaptableAxis bottomAxis = new(tickGenerator);
+			_plt.Axes.AddBottomAxis(bottomAxis);
+			_plt.Axes.Bottom.TickLabelStyle.Rotation = 45;
+			_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperLeft;
 		}
 
 		private void GenerateLegend()
@@ -75,9 +104,9 @@ namespace MyPlotting
 
 		private void GenerateBars()
 		{
+			(double min, double max) = _barGroups.SelectMany(g => g).MinMax();
 			if (LogY)
 			{
-				(double min, double max) = _barGroups.SelectMany(g => g).MinMax();
 				_yGenerator = new TickGenerators.LogTickGenerator(min, max) { LogBase = LogBaseY, ShowZero = true };
 				foreach (var g in _barGroups)
 				{
@@ -110,6 +139,10 @@ namespace MyPlotting
 				x++;
 			}
 			_plt.Add.Bars(bars.ToArray());
+			if (!LogY)
+			{
+				_plt.Axes.SetLimitsY(0, (int)(max + max / 10));
+			}
 		}
 
 	}
