@@ -19,6 +19,8 @@ namespace MyPlotting
 		protected LogTickGenerator? _xGenerator;
 		protected LogTickGenerator? _yGenerator;
 
+		protected List<(double x, Color? c, string label)> _verticalBars = [];
+
 		public AbstractPlot(bool logX, bool logY)
 		{
 			_plt = new();
@@ -47,6 +49,11 @@ namespace MyPlotting
 		}
 
 		public abstract void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "");
+
+		public void AddVerticalBar(double x, Color? color = null, string label = "")
+		{
+			_verticalBars.Add((x, color, label));
+		}
 
 		public void SavePdf(string outputPath, int width, int height)
 		{
