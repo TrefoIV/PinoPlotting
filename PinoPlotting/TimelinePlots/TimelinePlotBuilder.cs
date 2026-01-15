@@ -67,16 +67,22 @@ namespace MyPlotting
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
 			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
 
+			_plt.Axes.Bottom.TickLabelStyle.Bold = true;
+			_plt.Axes.Left.TickLabelStyle.Bold = true;
+			_plt.Legend.FontName = Fonts.Serif;
+
 			_plt.Grid.MinorLineWidth = Squeeze ? 0f : 0.5f;
 			_plt.Axes.Left.Label.Text = yLabel;
 			_plt.Axes.Bottom.Label.Text = xLabel;
-			int legendSize = 250;
-			_plt.Axes.Right.MinimumSize = TimeUnit.GetLabelingStrategy() == DateTimeLabelingStrategy.FullDate ? 75 : 0;
+			int legendSize = 300;
+			//_plt.Axes.Right.MinimumSize = TimeUnit.GetLabelingStrategy() == DateTimeLabelingStrategy.FullDate ? 75 : 0;
 			//float leftPadding = _plt.Axes.Left.TickLabelStyle.FontSize * 2.5f;
-			//float bttmPadding = _pl
-			//_plt.Layout.Fixed(new PixelPadding(top: 10, left: leftPadding, right: legendSize + 15, bottom: 105));
-			int xSize = (Squeeze ? 800 : Math.Max(800, xLen * 5)) + legendSize + 75;
+			////float bttmPadding = _pl
+			//_plt.Layout.Fixed(new PixelPadding(top: 10, left: leftPadding, right: 75, bottom: 105));
+			int xSize = (Squeeze ? 800 : Math.Max(800, xLen * 10)) + legendSize + 75;
+			//_plt.Layout.Fixed(new PixelPadding(top: null, right: legendSize + 25, left: 50, bottom: 105));
 			//_plt.Legend.Orientation = Orientation.Horizontal;
+
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
@@ -99,8 +105,8 @@ namespace MyPlotting
 			RotatedLabelAdaptableAxis axis = new(tickGenerator);
 			_plt.Axes.AddBottomAxis(axis);
 			_plt.Axes.Bottom.TickGenerator = tickGenerator;
-			_plt.Axes.Bottom.TickLabelStyle.Rotation = rotateLabels ? 45 : 0;
-			_plt.Axes.Bottom.TickLabelStyle.Alignment = rotateLabels ? Alignment.UpperLeft : Alignment.UpperCenter;
+			_plt.Axes.Bottom.TickLabelStyle.Rotation = rotateLabels ? -45 : 0;
+			_plt.Axes.Bottom.TickLabelStyle.Alignment = rotateLabels ? Alignment.UpperRight : Alignment.UpperCenter;
 			_plt.Grid.XAxis = axis;
 
 			return _allDates.Count;
