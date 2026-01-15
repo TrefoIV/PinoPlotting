@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <Reference Include="AdvancedDataStructures">
-      <HintPath>..\..\AdvancedDataStructures\AdvancedDataStructures\bin\Debug\net9.0\AdvancedDataStructures.dll</HintPath>
+      <HintPath>..\..\AdvancedDataStructures\AdvancedDataStructures\bin\Debug\net10.0\AdvancedDataStructures.dll</HintPath>
     </Reference>
   </ItemGroup>
 
