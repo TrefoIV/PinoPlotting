@@ -58,19 +58,24 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			SavePlot(outFile, null, xLabel, yLabel);
+			SavePlot(outFile, null, xLabel, yLabel, 800, 600);
 		}
 
-		public void SavePlot(FileInfo outFile, double? max, string xLabel = "", string yLabel = "")
+        public void SavePlot(FileInfo outFile, string xLabel, string yLabel, int width, int height)
+        {
+            SavePlot(outFile, null, xLabel, yLabel, width, height);
+        }
+
+        public void SavePlot(FileInfo outFile, double? max, string xLabel = "", string yLabel = "", int width = 800, int height = 600)
 		{
 			BuildXAxis(max);
 			FinalizeSettings(xLabel, yLabel);
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
-				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
