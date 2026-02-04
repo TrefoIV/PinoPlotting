@@ -73,7 +73,7 @@ namespace MyPlotting
 			SavePlot(outFile, xLabel, yLabel, "");
 		}
 
-		public void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "", string colormapLabel = "")
+		public void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "", string colormapLabel = "", int width = 800, int height = 800)
 		{
 
 			double? vMax = _points.Where(p => p.Value.HasValue).Select(p => p.Value).DefaultIfEmpty(null).Max();
@@ -169,11 +169,11 @@ namespace MyPlotting
 			_plt.YLabel(yLabel);
 
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
-				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
-				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				_plt.SaveSvg(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else if (PlottingConstants.ImageFormat.EndsWith(".pdf", StringComparison.InvariantCulture))
-				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, 800, 600);
+				SavePdf(outFile.FullName + PlottingConstants.ImageFormat, width, height);
 			else
 			{
 				Console.WriteLine($"FORMATO IMMAGINE NON SUPPORTATO PER IL FILE {outFile.FullName}. Invece di crashare skippo!");
