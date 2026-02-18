@@ -1,6 +1,7 @@
 ﻿using AdvancedDataStructures.Extensions;
 using MyPlotting.Extensions;
 using ScottPlot;
+using ScottPlot.TickGenerators;
 
 namespace MyPlotting
 {
@@ -9,6 +10,7 @@ namespace MyPlotting
 		public double xMax { get; protected set; }
 		public double yMax { get; protected set; }
 		public bool Squeeze { get; set; }
+		public Func<double, string>? xLabelFormatter { get; set; } = null;
 
 		public LinePlotBuilder(bool logX = false, bool logY = false)
 			: base(logX, logY)
@@ -19,6 +21,7 @@ namespace MyPlotting
 		{
 			linePattern ??= LinePattern.Solid;
 			double[] xs = data.Select((x, i) => (double)i + 1).ToArray();
+
 			double[] ys = data.ToArray();
 			if (LogY && data.Any())
 			{
@@ -58,6 +61,14 @@ namespace MyPlotting
 				{
 					_plt.Add.HorizontalLine(e, width: 1f, Colors.DarkGrey, LinePattern.Dashed);
 				}
+			}
+
+			if (xLabelFormatter != null)
+			{
+				_plt.Axes.Bottom.TickGenerator = new NumericAutomatic()
+				{
+					LabelFormatter = xLabelFormatter
+				};
 			}
 
 
