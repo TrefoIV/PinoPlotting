@@ -59,7 +59,7 @@ namespace MyPlotting
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 25f;
 			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
 			_plt.Legend.Alignment = LegendAlignment ?? Alignment.UpperRight;
-			int xSize = Math.Max(1200, _groupsLabels.Count * Math.Max(_classes, 15));
+			int xSize = Math.Max(1200, _groupsLabels.Count * Math.Max(_classes, 15) * 5);
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
 				_plt.SavePng(outFile.FullName + PlottingConstants.ImageFormat, xSize, 800);
 			else if (PlottingConstants.ImageFormat.EndsWith(".svg", StringComparison.InvariantCulture))
@@ -78,7 +78,7 @@ namespace MyPlotting
 
 			Tick[] ticks = Enumerable.Range(0, _barGroups.Count).Select(i =>
 			{
-				int baseIndex = i * (_classes + 1) + 1;
+				int baseIndex = (i * (_classes + 1)) + 1;
 				int lastIndex = baseIndex + _classes - 1;
 				double pos = ((double)(lastIndex + baseIndex)) / 2;
 				return new Tick(pos, _groupsLabels[i], true);
@@ -141,7 +141,7 @@ namespace MyPlotting
 			_plt.Add.Bars(bars.ToArray());
 			if (!LogY)
 			{
-				_plt.Axes.SetLimitsY(0, (int)(max + max / 10));
+				_plt.Axes.SetLimitsY(0, (int)(max + (max / 10)));
 			}
 		}
 
