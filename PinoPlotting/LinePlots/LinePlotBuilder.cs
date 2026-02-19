@@ -48,9 +48,7 @@ namespace MyPlotting
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
-			_plt.Axes.SetLimitsY(bottom: -0.01, top: yMax + 0.05);
-			_plt.Axes.SetLimits(right: xMax + 5);
-			_plt.Axes.SetLimits(left: 0);
+			
 
 			if (LogY)
 			{
@@ -84,10 +82,9 @@ namespace MyPlotting
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 
-			int xSize = Squeeze ? 800 : (int)_plt.Axes.GetLimits().Right * 10;
+			int xSize = Squeeze ? 800 : Math.Max(800, (int)_plt.Axes.GetLimits().Right * 10);
 			if (xLabel != null)
 				_plt.XLabel(xLabel);
-			_plt.Axes.Bottom.Label.OffsetY = 30f;
 			if (yLabel != null)
 				_plt.YLabel(yLabel);
 			if (PlottingConstants.ImageFormat.EndsWith(".png", StringComparison.InvariantCulture))
