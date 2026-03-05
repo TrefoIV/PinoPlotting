@@ -67,6 +67,10 @@ namespace MyPlotting
 			AddDataToPlot(inputData.Select(p => (p.x, (double)p.y, (double?)p.v)));
 		}
 
+		public void AddDataToPlot(IDictionary<(int x, int y), double?> inputData)
+		{
+			AddDataToPlot(inputData.Select(kv => ((double)kv.Key.x, (double)kv.Key.y, kv.Value)));
+		}
 
 		public override void SavePlot(FileInfo outFile, string xLabel = "", string yLabel = "")
 		{
