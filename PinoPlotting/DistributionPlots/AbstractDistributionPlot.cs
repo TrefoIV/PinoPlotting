@@ -38,7 +38,7 @@ namespace MyPlotting.DistributionPlots
 					baseOrder /= 2;
 				}
 				int bigTicks = (int)Math.Ceiling(maxX / baseOrder);
-				double[] xTicks = Enumerable.Range(0, bigTicks).SelectMany(n => Enumerable.Range(0, 4).Select(i => baseOrder * n + baseOrder / 4 * i)).Append(baseOrder * bigTicks).ToArray();
+				double[] xTicks = Enumerable.Range(0, bigTicks).SelectMany(n => Enumerable.Range(0, 4).Select(i => (baseOrder * n) + (baseOrder / 4 * i))).Append(baseOrder * bigTicks).ToArray();
 
 				_plt.Axes.Bottom.TickGenerator = new NumericManual(
 					xTicks,
