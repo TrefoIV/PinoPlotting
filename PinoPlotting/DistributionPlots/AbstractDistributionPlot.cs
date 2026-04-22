@@ -62,7 +62,7 @@ namespace MyPlotting.DistributionPlots
 		protected void PrepareLegend()
 		{
 			_plt.Legend.IsVisible = true;
-			_plt.Legend.FontSize = 14f;
+			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 14f;
 
 			if (PutLegendOutside)
 			{
