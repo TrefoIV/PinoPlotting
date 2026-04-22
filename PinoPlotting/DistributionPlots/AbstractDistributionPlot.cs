@@ -13,6 +13,7 @@ namespace MyPlotting.DistributionPlots
 		}
 
 		public bool RotateAxis { get; set; } = false;
+		public bool PutLegendOutside { get; set; } = false;
 		public Func<double, string> XLabelFormatter { get; set; } = PlotUtils.NumericLabeling;
 
 
@@ -55,6 +56,22 @@ namespace MyPlotting.DistributionPlots
 				_plt.PlottableList.ToList().ForEach(s => s.Axes.XAxis = axis);
 				_plt.Axes.Bottom.TickLabelStyle.Rotation = -45;
 				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperRight;
+			}
+		}
+
+		protected void PrepareLegend()
+		{
+			_plt.Legend.IsVisible = true;
+			_plt.Legend.FontSize = 14f;
+
+			if (PutLegendOutside)
+			{
+				_plt.Axes.Right.MinimumSize = 175;
+				_plt.Legend.Alignment = Alignment.UpperRight;
+			}
+			else if (LegendAlignment != null)
+			{
+				_plt.Legend.Alignment = LegendAlignment.Value;
 			}
 		}
 	}

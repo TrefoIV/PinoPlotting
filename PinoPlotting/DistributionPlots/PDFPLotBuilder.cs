@@ -93,8 +93,7 @@ namespace MyPlotting
 				};
 			}
 
-			_plt.Legend.IsVisible = true;
-			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
+			PrepareLegend();
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.XAxisStyle.MajorLineStyle.Pattern = LinePattern.Dotted;
@@ -105,7 +104,6 @@ namespace MyPlotting
 			_plt.Grid.IsVisible = true;
 			_plt.Axes.Bottom.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
 			_plt.Axes.Left.TickLabelStyle.FontSize = PlottingConstants.GlobalTicksLabelFontSize ?? 20f;
-			_plt.Legend.FontSize = PlottingConstants.GlobalLegendFontSize ?? 13f;
 			_plt.Axes.Bottom.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 			_plt.Axes.Left.Label.FontSize = PlottingConstants.GlobalAxisLabelFontSize ?? 20f;
 
