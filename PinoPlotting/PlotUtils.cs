@@ -14,11 +14,11 @@ namespace MyPlotting
 			List<(double, double)> result = new();
 
 			if (cdf.Count == 0) { return result; }
-			if (cdf[0].Item1 != 0 || cdf[0].Item2 != 0)
+			if (cdf[0].Item1 > 0 || cdf[0].Item2 > 0)
 			{
 				result.Add((0, 0));
 			}
-			if (cdf[0].Item1 != 0)
+			if (cdf[0].Item1 > 0)
 			{
 				result.Add((cdf[0].Item1, 0));
 			}
@@ -268,8 +268,8 @@ namespace MyPlotting
 			double Q3 = percentileBox.Box.BoxMax;
 			double IQR = Q3 - Q1;
 
-			double lowerCutoff = Q1 - 1.5 * IQR;
-			double upperCutoff = Q3 + 1.5 * IQR;
+			double lowerCutoff = Q1 - (1.5 * IQR);
+			double upperCutoff = Q3 + (1.5 * IQR);
 
 			(double minVal, double maxVal) = values.MinMax();
 
@@ -305,7 +305,7 @@ namespace MyPlotting
 			int hash = obj.GetHashCode();
 			byte r = (byte)((hash & 0xFF0000) >> 16);
 			byte g = (byte)((hash & 0x00FF00) >> 8);
-			byte b = (byte)((hash & 0x0000FF));
+			byte b = (byte)(hash & 0x0000FF);
 			return new Color(r, g, b);
 		}
 	}
