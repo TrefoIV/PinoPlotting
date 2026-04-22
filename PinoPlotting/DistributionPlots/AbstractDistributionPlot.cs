@@ -53,6 +53,8 @@ namespace MyPlotting.DistributionPlots
 				RotatedLabelAdaptableAxis axis = new(tickGenerator);
 				_plt.Axes.AddBottomAxis(axis);
 				_plt.PlottableList.ToList().ForEach(s => s.Axes.XAxis = axis);
+				_plt.Axes.Bottom.TickLabelStyle.Rotation = -45;
+				_plt.Axes.Bottom.TickLabelStyle.Alignment = Alignment.UpperRight;
 			}
 		}
 	}
