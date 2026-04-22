@@ -107,6 +107,10 @@ namespace MyPlotting
 				vline.LabelOppositeAxis = true;
 				vline.LineStyle.Pattern = LinePattern.Dashed;
 			}
+			if (_verticalBars.Any())
+			{
+				_plt.Axes.Top.MinimumSize = 50;
+			}
 
 			_plt.Legend.IsVisible = true;
 			if (LegendAlignment != null) _plt.Legend.Alignment = LegendAlignment.Value;
