@@ -16,6 +16,11 @@ namespace MyPlotting
 			AddCDFToPlot(segments.Select(x => x.TotalSeconds), label, steps, color);
 		}
 
+		public void AddVerticalBar(TimeSpan segment, Color? color = null, string label = "")
+		{
+			AddVerticalBar(segment.TotalSeconds, color, label);
+		}
+
 		public void SavePlot(FileInfo outFile, TimeSpan? maxValue, string xLabel = "", string yLabel = "")
 		{
 			BuildXAxis(maxValue);
@@ -69,12 +74,6 @@ namespace MyPlotting
 					LabelFormatter = PlotUtils.SpanLabeling
 				};
 			}
-
-
-
-
 		}
-
-
 	}
 }
