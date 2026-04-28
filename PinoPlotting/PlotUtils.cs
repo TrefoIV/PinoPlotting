@@ -69,7 +69,8 @@ namespace MyPlotting
 			public Box Box { get; set; }
 			public double Average { get; set; }
 			public double Variance { get; set; }
-			public string Legend { get; set; }
+			public double StandardDeviation { get; set; }
+			public string Legend { get; set; } = "";
 
 			public double Min
 			{
@@ -98,18 +99,19 @@ namespace MyPlotting
 			double[] ordered = data.Order().ToArray();
 			double average = data.Any() ? data.Average() : 0;
 			double variance = data.Any() ? data.Select(x => Math.Pow(x - average, 2)).Average() : 0;
+			double stdDev = Math.Sqrt(variance);
 			switch (ordered.Length)
 			{
 				case 0:
-					return new BoxWithAverage() { Box = new Box() { BoxMax = 0, BoxMin = 0 }, Average = average, Variance = variance };
+					return new BoxWithAverage() { Box = new Box() { BoxMax = 0, BoxMin = 0 }, Average = average, Variance = variance, StandardDeviation = stdDev };
 				case 1:
-					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[0] }, Average = average, Variance = variance };
+					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[0] }, Average = average, Variance = variance, StandardDeviation = stdDev };
 				case 2:
-					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[1] }, Average = average, Variance = variance };
+					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[1] }, Average = average, Variance = variance, StandardDeviation = stdDev };
 				case 3:
-					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[2], BoxMiddle = ordered[1] }, Average = average, Variance = variance };
+					return new BoxWithAverage() { Box = new Box() { BoxMin = ordered[0], BoxMax = ordered[2], BoxMiddle = ordered[1] }, Average = average, Variance = variance, StandardDeviation = stdDev };
 				case 4:
-					return new BoxWithAverage() { Box = new Box() { WhiskerMin = ordered[0], BoxMin = ordered[1], BoxMax = ordered[2], WhiskerMax = ordered[3] }, Average = average, Variance = variance };
+					return new BoxWithAverage() { Box = new Box() { WhiskerMin = ordered[0], BoxMin = ordered[1], BoxMax = ordered[2], WhiskerMax = ordered[3] }, Average = average, Variance = variance, StandardDeviation = stdDev };
 			}
 
 			int median = ordered.Length / 2;
@@ -126,7 +128,8 @@ namespace MyPlotting
 					WhiskerMin = ordered[0]
 				},
 				Average = average,
-				Variance = variance
+				Variance = variance,
+				StandardDeviation = stdDev
 			};
 		}
 

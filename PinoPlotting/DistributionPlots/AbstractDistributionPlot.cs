@@ -6,7 +6,7 @@ using ScottPlot.TickGenerators;
 
 namespace MyPlotting.DistributionPlots
 {
-	public abstract class AbstractDistributionPlot : AbstractPlot
+	public abstract class AbstractDistributionPlot : AbstractPlot, IRotatableAxis
 	{
 		protected AbstractDistributionPlot(bool logX, bool logY) : base(logX, logY)
 		{
@@ -19,14 +19,12 @@ namespace MyPlotting.DistributionPlots
 
 		protected void BuildXAxis(double? max = null)
 		{
-
-
 			if (LogX)
 			{
 				_xGenerator ??= new LogTickGenerator(1, 1) { LogBase = LogBaseX, LabelFormatter = XLabelFormatter };
 				_plt.Axes.Bottom.TickGenerator = _xGenerator;
 				(double bttm, double top) = _xGenerator.GetLimits();
-				_plt.Axes.SetLimitsX(bttm, top);
+				_plt.Axes.SetLimitsX(bttm, top + ((top - bttm) / 90));
 			}
 			else
 			{
@@ -66,8 +64,8 @@ namespace MyPlotting.DistributionPlots
 
 			if (PutLegendOutside)
 			{
-				_plt.Axes.Right.MinimumSize = 175;
-				_plt.Legend.Alignment = Alignment.UpperRight;
+				_plt.ShowLegend(Edge.Right);
+				return;
 			}
 			else if (LegendAlignment != null)
 			{

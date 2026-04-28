@@ -38,11 +38,11 @@ namespace MyPlotting.TickGenerators
 				if (i == 0) return Tick.Major(o, CreateLabel(o));
 				double b = Pow(o);
 				if (LogBase == 2 && i == 1) b *= 0.75;
-				double pos = Log(b + b * i);
+				double pos = Log(b + (b * i));
 				string label = CreateLabel(pos);
 				return i == 0 ? Tick.Major(pos, label) : Tick.Minor(pos);
 			})));
-			if (Max >= Pow(order - 1) + Pow(order - 1) * LogBase / 2)
+			if (Max >= Pow(order - 1) + (Pow(order - 1) * LogBase / 2))
 			{
 				tempTicks = tempTicks.Append(Tick.Major(order, CreateLabel(order)));
 			}
@@ -55,11 +55,11 @@ namespace MyPlotting.TickGenerators
 			{
 				double b = Pow(currentOrder);
 				int i = 1;
-				while (i < (LogBase / 2) && Max > (b + b * i))
+				while (i < (LogBase / 2) && Max > (b + (b * i)))
 				{
 					i++;
 				}
-				if (Max < b + b * i) return i;
+				if (Max < b + (b * i)) return i;
 			}
 			return LogBase == 2 ? LogBase : LogBase - 1;
 		}
@@ -79,7 +79,7 @@ namespace MyPlotting.TickGenerators
 			if (lastTcks <= (LogBase / 2))
 			{
 				double b = Pow(order - 1);
-				maxLimit = Log(b + b * lastTcks);
+				maxLimit = Log(b + (b * lastTcks));
 			}
 			return (minLimit, maxLimit);
 		}

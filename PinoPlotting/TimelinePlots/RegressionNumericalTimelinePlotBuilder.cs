@@ -8,6 +8,7 @@ namespace MyPlotting.TimelinePlots
 
 		public int PolynomialDegree { get; set; } = 2;
 		public bool ExponentialRegression { get; set; } = false;
+		public bool WriteRegressionPoints { get; set; } = false;
 
 		public RegressionNumericalTimelinePlotBuilder(bool logX, bool logY, bool drawBoxes = true) : base(logX, logY, drawBoxes)
 		{
@@ -52,12 +53,7 @@ namespace MyPlotting.TimelinePlots
 			// Fit polynomial (degree 2)
 			double[] pCoefficients = Fit.Polynomial(x, y, PolynomialDegree);
 
-			Console.Write(label + ": ");
-			for (int i = 0; i < pCoefficients.Length; i++)
-			{
-				Console.Write($"{pCoefficients[i]}*x^{i} + ");
-			}
-			Console.WriteLine();
+
 
 			//p sono i coefficienti => valutali per ogni x?
 			for (int i = 0; i < x.Length; i++)
@@ -66,6 +62,20 @@ namespace MyPlotting.TimelinePlots
 				for (int degree = 1; degree <= PolynomialDegree; degree++)
 				{
 					y[i] += pCoefficients[degree] * Math.Pow(x[i], degree);
+				}
+			}
+
+			if (WriteRegressionPoints)
+			{
+				Console.Write(label + ": ");
+				for (int i = 0; i < pCoefficients.Length; i++)
+				{
+					Console.Write($"{pCoefficients[i]}*x^{i} + ");
+				}
+				Console.WriteLine();
+				for (int i = 0; i < x.Length; i++)
+				{
+					Console.WriteLine($"x: {x[i]}, y: {y[i]}");
 				}
 			}
 			return (x, y);
@@ -85,12 +95,22 @@ namespace MyPlotting.TimelinePlots
 			}
 			double[] logY = y.Select(v => Math.Log2(v)).ToArray();
 			double[] pCoefficients = Fit.Polynomial(x, logY, 1); //p[0] = A, p[1] = B
-			Console.WriteLine($"{label} Exponential fit: y = {Math.Exp(pCoefficients[0])} * 2^({pCoefficients[1]} * x)");
+
 			//p sono i coefficienti => valutali per ogni x?
 			for (int i = 0; i < x.Length; i++)
 			{
 				y[i] = Math.Pow(2, pCoefficients[0]) * Math.Pow(2, pCoefficients[1] * x[i]);
 			}
+
+			if (WriteRegressionPoints)
+			{
+				Console.WriteLine($"{label} Exponential fit: y = {Math.Exp(pCoefficients[0])} * 2^({pCoefficients[1]} * x)");
+				for (int i = 0; i < x.Length; i++)
+				{
+					Console.WriteLine($"x: {x[i]}, y: {y[i]}");
+				}
+			}
+
 			return (x, y);
 		}
 

@@ -112,7 +112,7 @@ namespace MyPlotting
 				_plt.Axes.Top.MinimumSize = 50;
 			}
 
-				PrepareLegend();
+			PrepareLegend();
 			_plt.Grid.MajorLineWidth = 1;
 			_plt.Grid.MajorLineColor = Colors.LightGray;
 			_plt.Grid.XAxisStyle.MajorLineStyle.Pattern = LinePattern.Dotted;
